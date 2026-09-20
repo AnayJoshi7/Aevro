@@ -1,5 +1,6 @@
 package com.anay.fitnesstracker.Screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.ui.theme.*
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 
@@ -43,7 +46,11 @@ fun WorkoutSplitScreen(
                 .clickable { onBack() }
                 .padding(vertical = 12.dp)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGreen)
+            Image(
+                painter = painterResource(id = R.drawable.ic_back),
+                contentDescription = null,
+                modifier = Modifier.size(38.dp)
+            )
             Spacer(modifier = Modifier.width(6.dp))
             Text("Back", color = PrimaryGreen, fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }

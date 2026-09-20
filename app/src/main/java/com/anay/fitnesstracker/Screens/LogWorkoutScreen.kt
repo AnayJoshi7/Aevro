@@ -1,13 +1,13 @@
 package com.anay.fitnesstracker.Screens
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,14 +23,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.repository.ExerciseRepository
 import com.anay.fitnesstracker.data.WorkoutSet
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import androidx.compose.foundation.Image
+import com.anay.fitnesstracker.R
 
 private val BgGradient = Brush.verticalGradient(
     colors = listOf(
@@ -57,7 +60,6 @@ fun LogWorkoutScreen(
     var selectedExercise by remember { mutableStateOf("") }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
-    // Dynamic sets state
     var currentSets by remember {
         mutableStateOf(
             listOf(
@@ -77,7 +79,7 @@ fun LogWorkoutScreen(
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Back Header
+        // Back Button
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -106,11 +108,16 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(text = "Add Exercise", color = PrimaryGreen, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Add Exercise",
+            color = PrimaryGreen,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Main Exercise Card
+        // Main Exercise Form Card
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -118,11 +125,15 @@ fun LogWorkoutScreen(
                 .background(CardBackground)
                 .padding(20.dp)
         ) {
-            Text(text = "Name of the exercise", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Name of the exercise",
+                color = TextWhite,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Dropdown selection container
             ExposedDropdownMenuBox(
                 expanded = dropdownExpanded,
                 onExpandedChange = { dropdownExpanded = it }
@@ -166,17 +177,25 @@ fun LogWorkoutScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Render all sets
+            // --- 1. Loop over sets ONLY for the set rows ---
             currentSets.forEachIndexed { index, setItem ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Set Number Pill
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Set", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(4.dp))
+                    // 1. Set Column
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Set",
+                            color = TextWhite,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -185,14 +204,90 @@ fun LogWorkoutScreen(
                                 .background(Color.White),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("${setItem.setNumber}", color = Color.Black, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "${setItem.setNumber}",
+                                color = Color.Black,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
-                    // Weight Input
-                    Column(modifier = Modifier.weight(1.3f)) {
-                        Text("Weight", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(4.dp))
+                    // 2. Weight Column
+                    Column(
+                        modifier = Modifier.weight(1.3f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Weight",
+                            color = TextWhite,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color.White)
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                BasicTextField(
+                                    value = setItem.weightKg,
+                                    onValueChange = { newVal ->
+                                        currentSets = currentSets.toMutableList().also {
+                                            it[index] = it[index].copy(weightKg = newVal)
+                                        }
+                                    },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        color = Color.Black,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    modifier = Modifier.weight(1f),
+                                    decorationBox = { innerTextField ->
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.fillMaxHeight()
+                                        ) {
+                                            innerTextField()
+                                        }
+                                    }
+                                )
+
+                                Text(
+                                    text = "kg",
+                                    color = Color.DarkGray,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // 3. Reps Column
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Reps",
+                            color = TextWhite,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -202,55 +297,32 @@ fun LogWorkoutScreen(
                                 .padding(horizontal = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                TextField(
-                                    value = setItem.weightKg,
-                                    onValueChange = { newVal ->
-                                        currentSets = currentSets.toMutableList().also {
-                                            it[index] = it[index].copy(weightKg = newVal)
-                                        }
-                                    },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent,
-                                        focusedTextColor = Color.Black,
-                                        unfocusedTextColor = Color.Black,
-                                        focusedIndicatorColor = Color.Transparent,
-                                        unfocusedIndicatorColor = Color.Transparent
-                                    ),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text("kg", color = Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-
-                    // Reps Input
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Reps", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        TextField(
-                            value = setItem.reps,
-                            onValueChange = { newVal ->
-                                currentSets = currentSets.toMutableList().also {
-                                    it[index] = it[index].copy(reps = newVal)
+                            BasicTextField(
+                                value = setItem.reps,
+                                onValueChange = { newVal ->
+                                    currentSets = currentSets.toMutableList().also {
+                                        it[index] = it[index].copy(reps = newVal)
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    color = Color.Black,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { innerTextField ->
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.fillMaxHeight()
+                                    ) {
+                                        innerTextField()
+                                    }
                                 }
-                            },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                        )
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
@@ -258,7 +330,7 @@ fun LogWorkoutScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Action Row: Add Set & Submit Checkmark
+            // --- 2. Action row OUTSIDE the sets loop ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -278,9 +350,19 @@ fun LogWorkoutScreen(
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Add Set", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Add Set",
+                        color = Color.Black,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.Default.Add, contentDescription = "Add Set", tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add Set",
+                        tint = Color.Black,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
 
                 Box(
@@ -290,12 +372,21 @@ fun LogWorkoutScreen(
                         .background(PrimaryGreen)
                         .clickable {
                             if (selectedExercise.isBlank()) {
-                                Toast.makeText(context, "Select an exercise first", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Select an exercise first",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@clickable
                             }
-                            val validSets = currentSets.filter { it.weightKg.isNotBlank() && it.reps.isNotBlank() }
+                            val validSets =
+                                currentSets.filter { it.weightKg.isNotBlank() && it.reps.isNotBlank() }
                             if (validSets.isEmpty()) {
-                                Toast.makeText(context, "Please fill in weight and reps for at least one set", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Please fill in weight and reps for at least one set",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@clickable
                             }
 
@@ -305,7 +396,11 @@ fun LogWorkoutScreen(
                                 WorkoutSet(1, "", ""),
                                 WorkoutSet(2, "", "")
                             )
-                            Toast.makeText(context, "Workout logged successfully!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Workout logged successfully!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -317,7 +412,12 @@ fun LogWorkoutScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Other Exercises Section
-        Text(text = "Other Exercises", color = PrimaryGreen, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Other Exercises",
+            color = PrimaryGreen,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -341,25 +441,47 @@ fun LogWorkoutScreen(
                         .background(CardBackground)
                         .padding(18.dp)
                 ) {
-                    Text(text = exercise.exerciseName, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = exercise.exerciseName,
+                        color = TextWhite,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     exercise.sets.forEach { setItem ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Set : ${setItem.setNumber}", color = TextWhite, fontSize = 14.sp)
-                            Text("Weight : ${setItem.weightKg} kg", color = TextWhite, fontSize = 14.sp)
-                            Text("Reps : ${setItem.reps}", color = TextWhite, fontSize = 14.sp)
+                            Text(
+                                text = "Set : ${setItem.setNumber}",
+                                color = TextWhite,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(0.9f)
+                            )
+
+                            Text(
+                                text = "Weight : ${setItem.weightKg} kg",
+                                color = TextWhite,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1.4f)
+                            )
+
+                            Text(
+                                text = "Reps : ${setItem.reps}",
+                                color = TextWhite,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1.0f)
+                            )
                         }
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-                Spacer(modifier = Modifier.height(12.dp))
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
