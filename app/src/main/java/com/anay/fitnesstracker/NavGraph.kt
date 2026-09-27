@@ -16,11 +16,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.anay.fitnesstracker.Screens.*
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.Screens.PersonalInfoScreen
 import com.anay.fitnesstracker.Screens.NotificationScreen
 import com.anay.fitnesstracker.Screens.AboutScreen
+import androidx.navigation.NavType
 
 object Routes {
     const val SPLASH = "splash"
@@ -47,6 +49,9 @@ object Routes {
     const val WORKOUT_FULL_BODY = "workout_full_body"
 
     const val LOG_WORKOUT = "log_workout"
+    const val CUSTOM_SCHEDULE = "custom_schedule"
+    const val ADD_EXERCISES = "add_exercises/{dayName}"
+    const val CUSTOM_WORKOUT_DETAIL = "custom_workout_detail/{dayOrWorkoutName}"
 }
 @Composable
 fun FitnessAppNavHost(
@@ -117,6 +122,18 @@ fun FitnessAppNavHost(
         composable(Routes.ABOUT) {
             AboutScreen(
                 onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Routes.CUSTOM_WORKOUT_DETAIL,
+            arguments = listOf(navArgument("dayOrWorkoutName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val dayOrWorkoutName = backStackEntry.arguments?.getString("dayOrWorkoutName") ?: "Monday"
+            CustomWorkoutDetailScreen(
+                dayOrWorkoutName = dayOrWorkoutName,
+                viewModel = fitnessViewModel,
+                onBack = { navController.popBackStack() },
+                onNavigateLogWorkout = { navController.navigate(Routes.LOG_WORKOUT) }
             )
         }
 
@@ -285,6 +302,27 @@ fun FitnessAppNavHost(
             FullBodyScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateLogWorkout = { navController.navigate(Routes.LOG_WORKOUT) }
+            )
+        }
+        composable(Routes.CUSTOM_SCHEDULE) {
+            CustomScheduleScreen(
+                viewModel = fitnessViewModel,
+                onBack = { navController.popBackStack() },
+                onNavigateAddExercises = { dayName ->
+                    navController.navigate("add_exercises/$dayName")
+                }
+            )
+        }
+
+        composable(
+            route = Routes.ADD_EXERCISES,
+            arguments = listOf(androidx.navigation.navArgument("dayName") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val dayName = backStackEntry.arguments?.getString("dayName") ?: "Monday"
+            AddExercisesScreen(
+                dayName = dayName,
+                viewModel = fitnessViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
     }

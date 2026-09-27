@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.anay.fitnesstracker.data.*
+import com.anay.fitnesstracker.data.repository.ExerciseRepository
 import com.anay.fitnesstracker.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,6 +81,91 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             bmiCategory = cat,
             maintenanceCalories = maintCal
         )
+    }
+    // Inside FitnessViewModel.kt:
+
+    fun getStartOfTodayMillis(): Long {
+        return java.time.LocalDate.now()
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    // 1. Delete a Meal
+    fun deleteMeal(mealId: String) {
+        val user = _currentUser.value ?: return
+        val updatedMeals = user.meals.filter { it.id != mealId }
+        val updatedUser = user.copy(meals = updatedMeals)
+        _currentUser.value = updatedUser
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(user.username)
+                    .update("meals", updatedMeals)
+                    .await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // 2. Log Exercise with Category
+    fun logExercise(exerciseName: String, category: String, sets: List<WorkoutSet>) {
+        val user = _currentUser.value ?: return
+        val newEntry = LoggedExercise(
+            id = UUID.randomUUID().toString(),
+            category = category,
+            exerciseName = exerciseName,
+            sets = sets,
+            timestamp = System.currentTimeMillis()
+        )
+
+        val updatedWorkouts = listOf(newEntry) + user.loggedWorkouts
+        val newNotification = NotificationItem(
+            id = UUID.randomUUID().toString(),
+            message = "Logged: $exerciseName (${sets.size} sets)",
+            timestamp = System.currentTimeMillis()
+        )
+        val updatedNotifs = listOf(newNotification) + user.notifications
+
+        val updatedUser = user.copy(
+            loggedWorkouts = updatedWorkouts,
+            notifications = updatedNotifs
+        )
+        _currentUser.value = updatedUser
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(user.username)
+                    .update(
+                        mapOf(
+                            "loggedWorkouts" to updatedWorkouts,
+                            "notifications" to updatedNotifs
+                        )
+                    )
+                    .await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // 3. Delete an entire Logged Exercise Entry
+    fun deleteLoggedExercise(exerciseId: String) {
+        val user = _currentUser.value ?: return
+        val updatedWorkouts = user.loggedWorkouts.filter { it.id != exerciseId }
+        val updatedUser = user.copy(loggedWorkouts = updatedWorkouts)
+        _currentUser.value = updatedUser
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(user.username)
+                    .update("loggedWorkouts", updatedWorkouts)
+                    .await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun updateGoal(goal: String) {
@@ -202,6 +288,29 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+    fun updateWorkoutPreferences(frequency: String, split: String) {
+        val user = _currentUser.value ?: return
+        val updatedUser = user.copy(
+            workoutFrequency = frequency,
+            workoutSplit = split
+        )
+        _currentUser.value = updatedUser
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(user.username)
+                    .update(
+                        mapOf(
+                            "workoutFrequency" to frequency,
+                            "workoutSplit" to split
+                        )
+                    )
+                    .await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     fun logout(onLoggedOut: () -> Unit) {
         sessionManager.clearSession()
@@ -236,6 +345,130 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    // In FitnessViewModel.kt:
+
+    fun updateNutritionGoals(calories: Int, protein: Int) {
+        val user = _currentUser.value ?: return
+        val updated = user.copy(
+            dailyCalorieGoal = calories,
+            dailyProteinGoal = protein
+        )
+        _currentUser.value = updated
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(user.username)
+                    .update(
+                        mapOf(
+                            "dailyCalorieGoal" to calories,
+                            "dailyProteinGoal" to protein
+                        )
+                    ).await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun updateCustomDayMuscleGroup(dayName: String, muscleGroup: String) {
+        val user = _currentUser.value ?: return
+        val daysList = (if (user.customSchedule.isEmpty()) getDefaultCustomDays() else user.customSchedule).toMutableList()
+        val index = daysList.indexOfFirst { it.dayName.equals(dayName, ignoreCase = true) }
+
+        if (index != -1) {
+            daysList[index] = daysList[index].copy(muscleGroup = muscleGroup)
+        } else {
+            daysList.add(CustomDayWorkout(dayName = dayName, muscleGroup = muscleGroup))
+        }
+
+        val updated = user.copy(customSchedule = daysList)
+        _currentUser.value = updated
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(user.username)
+                    .update("customSchedule", daysList)
+                    .await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun addExerciseToDay(dayName: String, exerciseName: String) {
+        val user = _currentUser.value ?: return
+        val trimmed = exerciseName.trim()
+        if (trimmed.isBlank()) return
+
+        val daysList = (if (user.customSchedule.isEmpty()) getDefaultCustomDays() else user.customSchedule).toMutableList()
+        val index = daysList.indexOfFirst { it.dayName.equals(dayName, ignoreCase = true) }
+
+        if (index != -1) {
+            val existingExercises = daysList[index].exercises.toMutableList()
+            if (!existingExercises.contains(trimmed)) {
+                existingExercises.add(trimmed)
+                daysList[index] = daysList[index].copy(exercises = existingExercises)
+            }
+        }
+
+        val customExList = user.customExercises.toMutableList()
+        if (!customExList.contains(trimmed)) {
+            customExList.add(trimmed)
+        }
+
+        val updated = user.copy(customSchedule = daysList, customExercises = customExList)
+        _currentUser.value = updated
+
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(user.username)
+                    .update(
+                        mapOf(
+                            "customSchedule" to daysList,
+                            "customExercises" to customExList
+                        )
+                    ).await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun deleteExerciseFromDay(dayName: String, exerciseName: String) {
+        val user = _currentUser.value ?: return
+        val daysList = user.customSchedule.toMutableList()
+        val index = daysList.indexOfFirst { it.dayName.equals(dayName, ignoreCase = true) }
+
+        if (index != -1) {
+            val existing = daysList[index].exercises.filter { it != exerciseName }
+            daysList[index] = daysList[index].copy(exercises = existing)
+            val updated = user.copy(customSchedule = daysList)
+            _currentUser.value = updated
+
+            viewModelScope.launch {
+                try {
+                    db.collection("users").document(user.username)
+                        .update("customSchedule", daysList)
+                        .await()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    fun getAllAvailableExercises(): List<String> {
+        val master = ExerciseRepository.allExercises
+        val custom = _currentUser.value?.customExercises ?: emptyList()
+        return (master + custom).distinct().sorted()
+    }
+
+    private fun getDefaultCustomDays(): List<CustomDayWorkout> {
+        return listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday").map {
+            CustomDayWorkout(dayName = it, muscleGroup = "")
         }
     }
 

@@ -55,6 +55,7 @@ fun ProgressScreen(
         map
     }
 
+
     val maxCount = (dayCounts.values.maxOrNull() ?: 0).coerceAtLeast(1)
 
     // Weekly calories calculations: Target = dailyCalorieGoal * 7

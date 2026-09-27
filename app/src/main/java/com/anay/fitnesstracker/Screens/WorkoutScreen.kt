@@ -41,8 +41,7 @@ private val SelectedTabBg = Color(0xFF3DDC84).copy(alpha = 0.30f)
 
 data class WorkoutCardData(
     val title: String,
-    val muscles: String,
-    val exercises: String,
+    val exerciseCountText: String,
     val route: String
 )
 
@@ -52,36 +51,74 @@ fun WorkoutScreen(
     fitnessViewModel: FitnessViewModel
 ) {
     val user by fitnessViewModel.currentUser.collectAsState()
-    val todayWorkout = WorkoutScheduleHelper.getTodayWorkout(
-        workoutFrequency = user?.workoutFrequency ?: "6 Days a Week",
-        splitName = user?.workoutSplit ?: "Push Pull Legs"
-    )
 
-    // Complete list of workouts according to user's weekly split frequency
-    val allPossibleWorkouts = when (user?.workoutFrequency) {
-        "3 Days a Week" -> listOf(
-            WorkoutCardData("Full Body", "Compound full body", "9 Exercises", Routes.WORKOUT_FULL_BODY)
-        )
-        "4 Days a Week" -> listOf(
-            WorkoutCardData("Upper Body", "Chest, Back, Arms", "9 Exercises", Routes.WORKOUT_UPPER_BODY),
-            WorkoutCardData("Lower Body", "Legs, Abs, Glutes", "7 Exercises", Routes.WORKOUT_LOWER_BODY)
-        )
-        "5 Days a Week" -> listOf(
-            WorkoutCardData("Upper Body", "Chest, Back, Arms", "9 Exercises", Routes.WORKOUT_UPPER_BODY),
-            WorkoutCardData("Lower Body", "Legs, Core", "7 Exercises", Routes.WORKOUT_LOWER_BODY),
-            WorkoutCardData("Push Day", "Chest, Shoulder, Triceps", "7 Exercises", Routes.WORKOUT_PUSH_DAY),
-            WorkoutCardData("Pull Day", "Back, Biceps", "8 Exercises", Routes.WORKOUT_PULL_DAY),
-            WorkoutCardData("Leg Day", "Legs, Abs", "8 Exercises", Routes.WORKOUT_LEG_DAY)
-        )
-        else -> listOf(
-            WorkoutCardData("Push Day", "Chest, Shoulder, Triceps", "7 Exercises", Routes.WORKOUT_PUSH_DAY),
-            WorkoutCardData("Pull Day", "Back, Biceps", "8 Exercises", Routes.WORKOUT_PULL_DAY),
-            WorkoutCardData("Leg Day", "Legs, Abs", "8 Exercises", Routes.WORKOUT_LEG_DAY)
-        )
+    // 1. Current Day Identification (Monday .. Sunday)
+    val todayDayName = remember {
+        java.time.LocalDate.now().dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
     }
 
-    // Filters out the workout currently active in "Today's Workout"
-    val otherWorkouts = allPossibleWorkouts.filter { it.title != todayWorkout.title }
+    // 2. Resolve Today's Workout (Checking Custom Schedule First)
+    val todayCustomDay = user?.customSchedule?.find {
+        it.dayName.equals(todayDayName, ignoreCase = true) && it.muscleGroup.isNotBlank()
+    }
+
+    val todayTitle = if (todayCustomDay != null) {
+        todayCustomDay.muscleGroup
+    } else {
+        WorkoutScheduleHelper.getTodayWorkout(user).title
+    }
+
+    val todayExerciseCountText = if (todayCustomDay != null) {
+        "${todayCustomDay.exercises.size} Exercises"
+    } else {
+        WorkoutScheduleHelper.getTodayWorkout(user).exerciseCountText
+    }
+
+    val todayRoute = if (todayCustomDay != null) {
+        "custom_workout_detail/${todayCustomDay.dayName}"
+    } else {
+        WorkoutScheduleHelper.getTodayWorkout(user).route ?: Routes.LOG_WORKOUT
+    }
+
+    // 3. Resolve Other Workouts (Custom Schedule vs Presets)
+    val hasCustomSchedule = user?.customSchedule?.any { it.muscleGroup.isNotBlank() } == true
+
+    val otherWorkouts: List<WorkoutCardData> = if (hasCustomSchedule) {
+        user?.customSchedule
+            ?.filter {
+                it.muscleGroup.isNotBlank() && !it.dayName.equals(todayDayName, ignoreCase = true)
+            }
+            ?.map { day ->
+                WorkoutCardData(
+                    title = day.muscleGroup,
+                    exerciseCountText = "${day.exercises.size} Exercises",
+                    route = "custom_workout_detail/${day.dayName}"
+                )
+            } ?: emptyList()
+    } else {
+        val defaultWorkouts = when (user?.workoutFrequency) {
+            "3 Days a Week" -> listOf(
+                WorkoutCardData("Full Body", "9 Exercises", Routes.WORKOUT_FULL_BODY)
+            )
+            "4 Days a Week" -> listOf(
+                WorkoutCardData("Upper Body", "9 Exercises", Routes.WORKOUT_UPPER_BODY),
+                WorkoutCardData("Lower Body", "7 Exercises", Routes.WORKOUT_LOWER_BODY)
+            )
+            "5 Days a Week" -> listOf(
+                WorkoutCardData("Upper Body", "9 Exercises", Routes.WORKOUT_UPPER_BODY),
+                WorkoutCardData("Lower Body", "7 Exercises", Routes.WORKOUT_LOWER_BODY),
+                WorkoutCardData("Push Day", "7 Exercises", Routes.WORKOUT_PUSH_DAY),
+                WorkoutCardData("Pull Day", "8 Exercises", Routes.WORKOUT_PULL_DAY),
+                WorkoutCardData("Leg Day", "8 Exercises", Routes.WORKOUT_LEG_DAY)
+            )
+            else -> listOf(
+                WorkoutCardData("Push Day", "7 Exercises", Routes.WORKOUT_PUSH_DAY),
+                WorkoutCardData("Pull Day", "8 Exercises", Routes.WORKOUT_PULL_DAY),
+                WorkoutCardData("Leg Day", "8 Exercises", Routes.WORKOUT_LEG_DAY)
+            )
+        }
+        defaultWorkouts.filter { it.title != todayTitle }
+    }
 
     val backgroundGradient = Brush.verticalGradient(
         colors = listOf(
@@ -130,11 +167,11 @@ fun WorkoutScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Today's Clickable Card -> Opens WorkoutDetailScreen
             WorkoutDayClickableCard(
-                title = todayWorkout.title,
-                muscles = todayWorkout.muscleGroups,
-                exercises = todayWorkout.exerciseCountText,
-                onClick = { todayWorkout.route?.let { onNavigate(it) } }
+                title = todayTitle,
+                exerciseCountText = todayExerciseCountText,
+                onClick = { onNavigate(todayRoute) }
             )
 
             if (otherWorkouts.isNotEmpty()) {
@@ -150,11 +187,11 @@ fun WorkoutScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Other Clickable Cards -> Opens each WorkoutDetailScreen
                 otherWorkouts.forEach { workout ->
                     WorkoutDayClickableCard(
                         title = workout.title,
-                        muscles = workout.muscles,
-                        exercises = workout.exercises,
+                        exerciseCountText = workout.exerciseCountText,
                         onClick = { onNavigate(workout.route) }
                     )
                     Spacer(modifier = Modifier.height(14.dp))
@@ -171,9 +208,47 @@ fun WorkoutScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 1. Log Workout Pill
             LogWorkoutPillButton(
                 onClick = { onNavigate(Routes.LOG_WORKOUT) }
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 2. Create Custom Schedule Pill
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(Color(0xFF000000))
+                    .clickable { onNavigate(Routes.CUSTOM_SCHEDULE) }
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Create custom schedule",
+                    color = PrimaryGreen,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Create Custom Schedule",
+                        tint = Color.Black,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -195,8 +270,7 @@ fun WorkoutScreen(
 @Composable
 fun WorkoutDayClickableCard(
     title: String,
-    muscles: String,
-    exercises: String,
+    exerciseCountText: String,
     onClick: () -> Unit
 ) {
     Row(
@@ -215,17 +289,11 @@ fun WorkoutDayClickableCard(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = muscles,
-                color = TextWhite,
-                fontSize = 14.sp
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = exercises,
+                text = exerciseCountText,
                 color = TextMuted,
-                fontSize = 12.sp
+                fontSize = 13.sp
             )
         }
 

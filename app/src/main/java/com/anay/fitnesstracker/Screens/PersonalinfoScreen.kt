@@ -122,6 +122,7 @@ fun PersonalInfoScreen(
                 modifier = Modifier
                     .size(105.dp)
                     .clip(CircleShape)
+
                     .background(AvatarColor)
                     .clickable { photoPickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
@@ -145,7 +146,9 @@ fun PersonalInfoScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+
+            Spacer(modifier = Modifier.height(18.dp))
+
 
             if (!isEditing) {
                 val age = user?.birthYear?.let { (2026 - it).coerceAtLeast(0) } ?: "-"
@@ -157,6 +160,17 @@ fun PersonalInfoScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 InfoFieldRow(label = "Birth-Year", value = "${user?.birthYear ?: "-"}")
             } else {
+
+                Text(
+                    text = "Click on avatar to edit",
+                    color = TextWhite,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+
+
                 OutlinedTextField(
                     value = editableName,
                     onValueChange = { editableName = it },

@@ -1,7 +1,14 @@
 package com.anay.fitnesstracker.Screens
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,9 +18,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,11 +39,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.anay.fitnesstracker.data.repository.ExerciseRepository
+import com.anay.fitnesstracker.R
+import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.WorkoutSet
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
-import androidx.compose.foundation.Image
-import com.anay.fitnesstracker.R
 
 private val BgGradient = Brush.verticalGradient(
     colors = listOf(
@@ -44,10 +53,10 @@ private val BgGradient = Brush.verticalGradient(
     )
 )
 private val CardBackground = Color(0xFF070708)
+private val DropdownCardBg = Color(0xFF161719)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogWorkoutScreen(
     viewModel: FitnessViewModel,
@@ -55,10 +64,35 @@ fun LogWorkoutScreen(
 ) {
     val context = LocalContext.current
     val user by viewModel.currentUser.collectAsState()
-    val loggedList = user?.loggedWorkouts ?: emptyList()
+    val allLogged = user?.loggedWorkouts ?: emptyList()
+
+    val todayWorkout = remember(user?.workoutFrequency, user?.workoutSplit, user?.customSchedule) {
+        WorkoutScheduleHelper.getTodayWorkout(user)
+    }
+    val currentWorkoutCategory = todayWorkout.title
+
+    val startOfToday = remember {
+        java.time.LocalDate.now()
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    val todayLogged = allLogged.filter { it.timestamp >= startOfToday }
+    val previousWorkouts = allLogged.filter {
+        it.timestamp < startOfToday && (it.category == currentWorkoutCategory || currentWorkoutCategory == "Rest Day")
+    }
 
     var selectedExercise by remember { mutableStateOf("") }
     var dropdownExpanded by remember { mutableStateOf(false) }
+
+    val allAvailableExercises = remember(user?.customExercises) {
+        viewModel.getAllAvailableExercises()
+    }
+    val filteredExercises = remember(selectedExercise, allAvailableExercises) {
+        if (selectedExercise.isBlank()) allAvailableExercises
+        else allAvailableExercises.filter { it.contains(selectedExercise, ignoreCase = true) }
+    }
 
     var currentSets by remember {
         mutableStateOf(
@@ -79,7 +113,7 @@ fun LogWorkoutScreen(
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Back Button
+        // Back Button Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -108,12 +142,7 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = "Add Exercise",
-            color = PrimaryGreen,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Text(text = "Add Exercise", color = PrimaryGreen, fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -125,77 +154,145 @@ fun LogWorkoutScreen(
                 .background(CardBackground)
                 .padding(20.dp)
         ) {
-            Text(
-                text = "Name of the exercise",
-                color = TextWhite,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = "Name of the exercise", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ExposedDropdownMenuBox(
-                expanded = dropdownExpanded,
-                onExpandedChange = { dropdownExpanded = it }
+            // Typable Search Input Pill
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
-                TextField(
-                    value = selectedExercise,
-                    onValueChange = {},
-                    readOnly = true,
-                    placeholder = { Text("Select exercise", color = Color.Gray) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = dropdownExpanded,
-                    onDismissRequest = { dropdownExpanded = false },
-                    modifier = Modifier.background(Color(0xFF1E1E20))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ExerciseRepository.allExercises.forEach { exercise ->
-                        DropdownMenuItem(
-                            text = { Text(exercise, color = Color.White) },
-                            onClick = {
-                                selectedExercise = exercise
-                                dropdownExpanded = false
-                            }
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (selectedExercise.isEmpty()) {
+                            Text("Select or type exercise", color = Color.Gray, fontSize = 14.sp)
+                        }
+                        BasicTextField(
+                            value = selectedExercise,
+                            onValueChange = { query ->
+                                selectedExercise = query
+                                dropdownExpanded = query.isNotBlank()
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = Color.Black,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
+                    }
+
+                    if (selectedExercise.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                selectedExercise = ""
+                                dropdownExpanded = false
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = { dropdownExpanded = !dropdownExpanded },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Expand",
+                            tint = Color.Black
+                        )
+                    }
+                }
+            }
+
+            // Clean Docked Dropdown Card (Matches Reference UI)
+            AnimatedVisibility(
+                visible = dropdownExpanded && filteredExercises.isNotEmpty(),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
+                        .heightIn(max = 190.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(DropdownCardBg)
+                        .border(1.dp, Color(0xFF2C2E33), RoundedCornerShape(16.dp))
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    filteredExercises.forEachIndexed { index, exercise ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedExercise = exercise
+                                    dropdownExpanded = false
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = exercise,
+                                color = TextWhite,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = Color.DarkGray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        if (index < filteredExercises.lastIndex) {
+                            HorizontalDivider(
+                                color = Color(0xFF242528),
+                                thickness = 0.8.dp,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 1. Loop over sets ONLY for the set rows ---
+            // Set Rows with centered alignments and Delete Set option
             currentSets.forEachIndexed { index, setItem ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 1. Set Column
+                    // Set Number Pill
                     Column(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(0.9f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Set",
-                            color = TextWhite,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        if (index == 0) {
+                            Text("Set", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -213,25 +310,22 @@ fun LogWorkoutScreen(
                         }
                     }
 
-                    // 2. Weight Column
+                    // Weight Pill
                     Column(
                         modifier = Modifier.weight(1.3f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Weight",
-                            color = TextWhite,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        if (index == 0) {
+                            Text("Weight", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Color.White)
-                                .padding(horizontal = 12.dp),
+                                .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
@@ -270,24 +364,21 @@ fun LogWorkoutScreen(
                                     color = Color.DarkGray,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(start = 4.dp)
+                                    modifier = Modifier.padding(start = 2.dp)
                                 )
                             }
                         }
                     }
 
-                    // 3. Reps Column
+                    // Reps Pill
                     Column(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Reps",
-                            color = TextWhite,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        if (index == 0) {
+                            Text("Reps", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -324,13 +415,33 @@ fun LogWorkoutScreen(
                             )
                         }
                     }
+
+                    // Delete Set Button
+                    if (currentSets.size > 1) {
+                        IconButton(
+                            onClick = {
+                                val mutable = currentSets.toMutableList()
+                                mutable.removeAt(index)
+                                currentSets = mutable.mapIndexed { i, s -> s.copy(setNumber = i + 1) }
+                            },
+                            modifier = Modifier
+                                .padding(top = if (index == 0) 24.dp else 0.dp)
+                                .size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Delete Set",
+                                tint = Color(0xFFE53935)
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // --- 2. Action row OUTSIDE the sets loop ---
+            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -350,15 +461,10 @@ fun LogWorkoutScreen(
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "Add Set",
-                        color = Color.Black,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Add Set", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        Icons.Default.Add,
+                        imageVector = Icons.Default.Add,
                         contentDescription = "Add Set",
                         tint = Color.Black,
                         modifier = Modifier.size(16.dp)
@@ -372,35 +478,22 @@ fun LogWorkoutScreen(
                         .background(PrimaryGreen)
                         .clickable {
                             if (selectedExercise.isBlank()) {
-                                Toast.makeText(
-                                    context,
-                                    "Select an exercise first",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(context, "Select or enter an exercise first", Toast.LENGTH_SHORT).show()
                                 return@clickable
                             }
-                            val validSets =
-                                currentSets.filter { it.weightKg.isNotBlank() && it.reps.isNotBlank() }
+                            val validSets = currentSets.filter { it.weightKg.isNotBlank() && it.reps.isNotBlank() }
                             if (validSets.isEmpty()) {
-                                Toast.makeText(
-                                    context,
-                                    "Please fill in weight and reps for at least one set",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(context, "Please enter weight and reps", Toast.LENGTH_SHORT).show()
                                 return@clickable
                             }
 
-                            viewModel.logExercise(selectedExercise, validSets)
+                            viewModel.logExercise(selectedExercise.trim(), currentWorkoutCategory, validSets)
                             selectedExercise = ""
                             currentSets = listOf(
                                 WorkoutSet(1, "", ""),
                                 WorkoutSet(2, "", "")
                             )
-                            Toast.makeText(
-                                context,
-                                "Workout logged successfully!",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, "Workout logged successfully!", Toast.LENGTH_SHORT).show()
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -411,17 +504,12 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Other Exercises Section
-        Text(
-            text = "Other Exercises",
-            color = PrimaryGreen,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
+        // Today's Logged Exercises Section
+        Text(text = "Today's Logged Exercises", color = PrimaryGreen, fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (loggedList.isEmpty()) {
+        if (todayLogged.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -430,10 +518,10 @@ fun LogWorkoutScreen(
                     .padding(20.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No logged exercises yet.", color = Color.Gray, fontSize = 14.sp)
+                Text("No exercises logged yet today.", color = Color.Gray, fontSize = 14.sp)
             }
         } else {
-            loggedList.forEach { exercise ->
+            todayLogged.forEach { exercise ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -441,47 +529,79 @@ fun LogWorkoutScreen(
                         .background(CardBackground)
                         .padding(18.dp)
                 ) {
-                    Text(
-                        text = exercise.exerciseName,
-                        color = TextWhite,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = exercise.exerciseName, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        IconButton(
+                            onClick = { viewModel.deleteLoggedExercise(exercise.id) },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Exercise", tint = Color(0xFFE53935))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    exercise.sets.forEach { setItem ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Set : ${setItem.setNumber}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(0.9f))
+                            Text("Weight : ${setItem.weightKg} kg", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
+                            Text("Reps : ${setItem.reps}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.0f))
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        // Exercises of Previous Session Section
+        if (previousWorkouts.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Exercises of previous $currentWorkoutCategory",
+                color = PrimaryGreen,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            previousWorkouts.forEach { exercise ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(CardBackground)
+                        .padding(18.dp)
+                ) {
+                    Text(text = exercise.exerciseName, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     exercise.sets.forEach { setItem ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 3.dp),
+                                .padding(vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Set : ${setItem.setNumber}",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                modifier = Modifier.weight(0.9f)
-                            )
-
-                            Text(
-                                text = "Weight : ${setItem.weightKg} kg",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                modifier = Modifier.weight(1.4f)
-                            )
-
-                            Text(
-                                text = "Reps : ${setItem.reps}",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                modifier = Modifier.weight(1.0f)
-                            )
+                            Text("Set : ${setItem.setNumber}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(0.9f))
+                            Text("Weight : ${setItem.weightKg} kg", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
+                            Text("Reps : ${setItem.reps}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.0f))
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
+                Spacer(modifier = Modifier.height(12.dp))
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }

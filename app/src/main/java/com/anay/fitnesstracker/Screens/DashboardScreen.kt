@@ -53,6 +53,7 @@ import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.data.viewmodel.QuoteViewModel
 
+
 private val CardBackground = Color(0xFF070708)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
@@ -75,13 +76,9 @@ fun DashboardScreen(
     val quote = quoteViewModel.quote.collectAsState().value
     val isLoading = quoteViewModel.isLoading.collectAsState().value
     val error = quoteViewModel.error.collectAsState().value
-    val todayWorkout = WorkoutScheduleHelper.getTodayWorkout(
-        workoutFrequency = user?.workoutFrequency ?: "6 Days a Week",
-        splitName = user?.workoutSplit ?: "Push Pull Legs"
-    )
+    val todayWorkout = WorkoutScheduleHelper.getTodayWorkout(user)
 
-    // 1. Calculate today's target exercise count based on schedule
-// In DashboardScreen.kt:
+
     val targetExercisesToday = remember(todayWorkout.title) {
         when (todayWorkout.title) {
             "Push Day" -> 8
@@ -100,6 +97,12 @@ fun DashboardScreen(
             .atStartOfDay(java.time.ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
+    }
+
+    val totalCaloriesConsumedToday = remember(user?.meals, startOfTodayMillis) {
+        user?.meals
+            ?.filter { it.timestamp >= startOfTodayMillis }
+            ?.sumOf { it.calories } ?: 0
     }
 
     val completedExercisesToday = remember(user?.loggedWorkouts) {
