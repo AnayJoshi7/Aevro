@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.components.LogWorkoutPillButton
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
 private val BgGradient = Brush.verticalGradient(
     colors = listOf(
@@ -50,10 +51,12 @@ fun WorkoutDetailScreen(
     onBack: () -> Unit,
     onNavigateLogWorkout: () -> Unit
 ) {
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),

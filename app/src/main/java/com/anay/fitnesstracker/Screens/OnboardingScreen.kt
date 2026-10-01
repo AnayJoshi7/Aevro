@@ -30,15 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.components.SplashTopIcons
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
-private val BgGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF1B1C1E),
-        Color(0xFF131416),
-        Color(0xFF2C2E31),
-        Color(0xFF111214)
-    )
-)
+
+
 private val DarkPillColor = Color(0xFF000000)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
@@ -49,6 +44,7 @@ fun OnboardingScreen(
     viewModel: FitnessViewModel,
     onNext: () -> Unit
 ) {
+
     var name by remember { mutableStateOf("") }
     var birthYear by remember { mutableStateOf("") }
     var contactNo by remember { mutableStateOf("") }
@@ -63,7 +59,8 @@ fun OnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()

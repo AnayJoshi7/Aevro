@@ -13,18 +13,16 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 
+
+
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val BgGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF1B1C1E),
-        Color(0xFF131416),
-        Color(0xFF2C2E31),
-        Color(0xFF111214)
-    )
-)
+
 
 val CardBackground = Color(0xFF070708)
 val PrimaryGreen = Color(0xFF27D07F)
@@ -84,4 +82,17 @@ fun FitnessTrackerTheme(
             content()
         }
     }
+}
+fun Modifier.appBackgroundGradient(): Modifier = this.drawBehind {
+    val gradientBrush = Brush.linearGradient(
+        colorStops = arrayOf(
+            0.00f to Color(0xFF1A1A1A),
+            0.52f to Color(0xFF1A1A1A), // 52% stop from Figma
+            0.92f to Color(0xFF595959), // 92% stop from Figma
+            1.00f to Color(0xFF595959)
+        ),
+        start = Offset(x = 0f, y = 0f),                         // Top-Left origin
+        end = Offset(x = size.width * 0.90f, y = size.height)   // Diagonally toward bottom-right
+    )
+    drawRect(brush = gradientBrush)
 }

@@ -32,10 +32,12 @@ fun WorkoutSplitScreen(
 ) {
     val highlightedSplit by viewModel.highlightedSplit.collectAsState()
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp)

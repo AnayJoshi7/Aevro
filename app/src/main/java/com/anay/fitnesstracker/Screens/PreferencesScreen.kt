@@ -34,11 +34,12 @@ fun PreferencesScreen(
 
     Spacer(modifier = Modifier.height(28.dp))
 
+
     Column(
 
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),

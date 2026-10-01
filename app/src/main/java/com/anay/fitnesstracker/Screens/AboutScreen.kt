@@ -24,15 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
-private val BgGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF1B1C1E),
-        Color(0xFF131416),
-        Color(0xFF2C2E31),
-        Color(0xFF111214)
-    )
-)
 private val CardBackground = Color(0xFF070708)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
@@ -41,10 +34,11 @@ private val TextWhite = Color(0xFFFFFFFF)
 fun AboutScreen(
     onBack: () -> Unit
 ) {
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp)

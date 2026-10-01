@@ -38,10 +38,12 @@ fun OnboardingContinuedScreen(
     val goals = listOf("Maintain Weight", "Lose Weight", "Gain Weight")
     var selectedGoal by remember { mutableStateOf(tempUser.fitnessGoal) }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),

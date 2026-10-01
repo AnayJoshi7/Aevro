@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.util.ImageUtils
 
 private val BgGradient = Brush.verticalGradient(
@@ -78,10 +79,12 @@ fun PersonalInfoScreen(
         }
     }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()

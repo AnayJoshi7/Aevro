@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
 private val BgGradient = Brush.verticalGradient(
     colors = listOf(
@@ -64,10 +65,12 @@ fun AddExercisesScreen(
 
     var inputDrafts by remember { mutableStateOf(listOf("")) }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()

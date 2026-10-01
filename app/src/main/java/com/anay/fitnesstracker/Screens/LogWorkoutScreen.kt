@@ -43,6 +43,7 @@ import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.WorkoutSet
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -123,10 +124,12 @@ fun LogWorkoutScreen(
         )
     }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()

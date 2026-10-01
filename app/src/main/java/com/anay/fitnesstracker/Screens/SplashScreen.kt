@@ -36,10 +36,12 @@ fun SplashScreen(
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())

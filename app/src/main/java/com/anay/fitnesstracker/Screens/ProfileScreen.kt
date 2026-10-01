@@ -29,6 +29,7 @@ import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.UserProfile
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.components.AppBottomNavigationBar
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.util.ImageUtils
 
 private val CardBackground = Color(0xFF070708)
@@ -58,10 +59,12 @@ fun ProfileScreen(
         )
     )
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally

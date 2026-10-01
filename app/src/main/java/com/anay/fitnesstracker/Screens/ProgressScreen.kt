@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.Routes
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoField
@@ -77,10 +78,12 @@ fun ProgressScreen(
         )
     )
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.Start

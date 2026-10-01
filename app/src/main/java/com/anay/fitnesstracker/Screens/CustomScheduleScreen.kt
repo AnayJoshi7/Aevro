@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
 private val BgGradient = Brush.verticalGradient(
     colors = listOf(
@@ -50,10 +51,12 @@ fun CustomScheduleScreen(
     val user by viewModel.currentUser.collectAsState()
     val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()

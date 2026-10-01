@@ -47,6 +47,7 @@ import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.components.AppBottomNavigationBar
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
 import java.time.LocalDate
 import java.time.ZoneId
@@ -133,12 +134,14 @@ fun DashboardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(24.dp))
+
 
         // Main scrollable content
         Column(

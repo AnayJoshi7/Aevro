@@ -22,12 +22,14 @@ fun ConfirmationScreen(
     viewModel: FitnessViewModel,
     onEnterDashboard: () -> Unit
 ) {
+
     val tempUser by viewModel.tempOnboarding.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgGradient)
+            .appBackgroundGradient()
+
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),
