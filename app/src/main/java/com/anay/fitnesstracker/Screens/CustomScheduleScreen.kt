@@ -59,7 +59,7 @@ fun CustomScheduleScreen(
             .imePadding()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.Start
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -85,7 +85,7 @@ fun CustomScheduleScreen(
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 34.sp,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign = androidx.compose.ui.text.style.TextAlign.Start
         )
 
         Spacer(modifier = Modifier.height(28.dp))

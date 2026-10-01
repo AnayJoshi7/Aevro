@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,13 +19,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
@@ -41,6 +46,7 @@ private val BgGradient = Brush.verticalGradient(
 private val CardBackground = Color(0xFF070708)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
+private val TextMuted = Color(0xFF9E9E9E)
 private val AvatarColor = Color(0xFFD4D4D6)
 
 @Composable
@@ -78,9 +84,11 @@ fun PersonalInfoScreen(
             .background(BgGradient)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .imePadding()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        // Back Button Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -104,36 +112,64 @@ fun PersonalInfoScreen(
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 34.sp,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Start,
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Main Card
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(CardBackground)
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
+            // Avatar Box with Translucent Overlay & Pen Icon when in Edit Mode
             Box(
                 modifier = Modifier
                     .size(105.dp)
                     .clip(CircleShape)
-
                     .background(AvatarColor)
-                    .clickable { photoPickerLauncher.launch("image/*") },
+                    .clickable(enabled = isEditing) { photoPickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
                 if (avatarBitmap != null) {
                     Image(
                         bitmap = avatarBitmap.asImageBitmap(),
                         contentDescription = "Avatar",
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(if (isEditing) Modifier.alpha(0.55f) else Modifier),
                         contentScale = ContentScale.Crop
                     )
+                }
+
+                // If editing: Show darker translucent tint and Pen icon over the avatar
+                if (isEditing) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.7f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Change photo",
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -146,11 +182,10 @@ fun PersonalInfoScreen(
                 fontWeight = FontWeight.Bold
             )
 
-
             Spacer(modifier = Modifier.height(18.dp))
 
-
             if (!isEditing) {
+                // View Mode
                 val age = user?.birthYear?.let { (2026 - it).coerceAtLeast(0) } ?: "-"
                 InfoFieldRow(label = "Name", value = user?.name ?: "-")
                 Spacer(modifier = Modifier.height(12.dp))
@@ -160,44 +195,47 @@ fun PersonalInfoScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 InfoFieldRow(label = "Birth-Year", value = "${user?.birthYear ?: "-"}")
             } else {
-
+                // Edit Mode
                 Text(
                     text = "Click on avatar to edit",
-                    color = TextWhite,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
 
-
-
-                OutlinedTextField(
+                // Name Input
+                EditFieldInput(
+                    label = "Name",
                     value = editableName,
-                    onValueChange = { editableName = it },
-                    label = { Text("Name", color = Color.Gray) },
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextWhite, unfocusedTextColor = TextWhite),
-                    modifier = Modifier.fillMaxWidth()
+                    onValueChange = { editableName = it }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Birth Year Input
+                EditFieldInput(
+                    label = "Birth Year",
                     value = editableYear,
-                    onValueChange = { editableYear = it },
-                    label = { Text("Birth Year", color = Color.Gray) },
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextWhite, unfocusedTextColor = TextWhite),
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardType = KeyboardType.Number,
+                    onValueChange = { editableYear = it }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Contact No Input
+                EditFieldInput(
+                    label = "Contact No.",
                     value = editableContact,
-                    onValueChange = { editableContact = it },
-                    label = { Text("Contact No.", color = Color.Gray) },
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextWhite, unfocusedTextColor = TextWhite),
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardType = KeyboardType.Phone,
+                    onValueChange = { editableContact = it }
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Edit / Save Pill Button
             Row(
                 modifier = Modifier
                     .align(Alignment.End)
@@ -214,13 +252,63 @@ fun PersonalInfoScreen(
                         }
                         isEditing = !isEditing
                     }
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Black, modifier = Modifier.size(16.dp))
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = if (isEditing) "Save" else "Edit",
+                    tint = Color.Black,
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(if (isEditing) "Save" else "Edit", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = if (isEditing) "Save" else "Edit",
+                    color = Color.Black,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun EditFieldInput(
+    label: String,
+    value: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    onValueChange: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            color = TextWhite,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color.White)
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                textStyle = TextStyle(
+                    color = Color.Black,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

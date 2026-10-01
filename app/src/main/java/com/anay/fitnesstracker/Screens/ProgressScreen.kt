@@ -17,7 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
-import com.anay.fitnesstracker.screens.BottomNavigationBar
+import com.anay.fitnesstracker.components.AppBottomNavigationBar
+import com.anay.fitnesstracker.Routes
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoField
@@ -82,21 +83,23 @@ fun ProgressScreen(
             .background(backgroundGradient)
             .statusBarsPadding()
             .navigationBarsPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.Start
     ) {
+        Spacer(modifier = Modifier.height(20.dp))
+
         Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
             Spacer(modifier = Modifier.height(28.dp))
 
             Text(
                 text = "Progress",
-                color = TextWhite,
+                color = PrimaryGreen,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -242,7 +245,10 @@ fun ProgressScreen(
         ) {
             HorizontalDivider(color = Color(0xFF8E9094), thickness = 1.dp, modifier = Modifier.padding(horizontal = 4.dp))
             Spacer(modifier = Modifier.height(14.dp))
-            BottomNavigationBar(selectedTab = "Progress", onNavigate = onNavigate)
+            AppBottomNavigationBar(
+                currentRoute = Routes.PROGRESS,
+                onNavigate = onNavigate
+            )
             Spacer(modifier = Modifier.height(12.dp))
         }
     }

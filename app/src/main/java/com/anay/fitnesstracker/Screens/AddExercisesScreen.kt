@@ -73,7 +73,7 @@ fun AddExercisesScreen(
             .imePadding()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.Start
     ) {
         // Back Header
         Row(
@@ -92,13 +92,13 @@ fun AddExercisesScreen(
             Text("Back", color = PrimaryGreen, fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Add Exercises",
             color = PrimaryGreen,
             fontSize = 30.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
 
         Spacer(modifier = Modifier.height(28.dp))

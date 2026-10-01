@@ -43,6 +43,9 @@ import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.WorkoutSet
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 private val BgGradient = Brush.verticalGradient(
     colors = listOf(
@@ -71,20 +74,37 @@ fun LogWorkoutScreen(
     }
     val currentWorkoutCategory = todayWorkout.title
 
-    val startOfToday = remember {
-        java.time.LocalDate.now()
-            .atStartOfDay(java.time.ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
+    // Helper to accurately compare calendar dates (handles both seconds and milliseconds timestamps)
+    val todayDate = remember { LocalDate.now() }
+    val systemZone = remember { ZoneId.systemDefault() }
+
+    val todayLogged = remember(allLogged, todayDate) {
+        allLogged.filter { workout ->
+            val millis = if (workout.timestamp < 100_000_000_000L) {
+                workout.timestamp * 1000L // Convert seconds to milliseconds if stored in seconds
+            } else {
+                workout.timestamp
+            }
+            val workoutDate = Instant.ofEpochMilli(millis).atZone(systemZone).toLocalDate()
+            workoutDate == todayDate
+        }
     }
 
-    val todayLogged = allLogged.filter { it.timestamp >= startOfToday }
-    val previousWorkouts = allLogged.filter {
-        it.timestamp < startOfToday && (it.category == currentWorkoutCategory || currentWorkoutCategory == "Rest Day")
+    val previousWorkouts = remember(allLogged, todayDate, currentWorkoutCategory) {
+        allLogged.filter { workout ->
+            val millis = if (workout.timestamp < 100_000_000_000L) {
+                workout.timestamp * 1000L
+            } else {
+                workout.timestamp
+            }
+            val workoutDate = Instant.ofEpochMilli(millis).atZone(systemZone).toLocalDate()
+            workoutDate < todayDate && (workout.category == currentWorkoutCategory || currentWorkoutCategory == "Rest Day")
+        }
     }
 
     var selectedExercise by remember { mutableStateOf("") }
     var dropdownExpanded by remember { mutableStateOf(false) }
+    var isKg by remember { mutableStateOf(true) } // kg vs lb toggle
 
     val allAvailableExercises = remember(user?.customExercises) {
         viewModel.getAllAvailableExercises()
@@ -137,7 +157,7 @@ fun LogWorkoutScreen(
             color = PrimaryGreen,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.Start)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -222,7 +242,7 @@ fun LogWorkoutScreen(
                 }
             }
 
-            // Clean Docked Dropdown Card (Matches Reference UI)
+            // Clean Docked Dropdown Card
             AnimatedVisibility(
                 visible = dropdownExpanded && filteredExercises.isNotEmpty(),
                 enter = fadeIn() + expandVertically(),
@@ -310,13 +330,26 @@ fun LogWorkoutScreen(
                         }
                     }
 
-                    // Weight Pill
+                    // Weight Pill (with kg / lb unit switcher)
                     Column(
                         modifier = Modifier.weight(1.3f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         if (index == 0) {
-                            Text("Weight", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text("Weight", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isKg) "(kg)" else "(lb)",
+                                    color = PrimaryGreen,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable { isKg = !isKg }
+                                )
+                            }
                             Spacer(modifier = Modifier.height(6.dp))
                         }
                         Box(
@@ -360,11 +393,13 @@ fun LogWorkoutScreen(
                                 )
 
                                 Text(
-                                    text = "kg",
+                                    text = if (isKg) "kg" else "lb",
                                     color = Color.DarkGray,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(start = 2.dp)
+                                    modifier = Modifier
+                                        .padding(start = 2.dp)
+                                        .clickable { isKg = !isKg }
                                 )
                             }
                         }
@@ -487,7 +522,18 @@ fun LogWorkoutScreen(
                                 return@clickable
                             }
 
-                            viewModel.logExercise(selectedExercise.trim(), currentWorkoutCategory, validSets)
+                            // If entered in lb, store clean kg value so internal data remains unified
+                            val finalSets = validSets.map { set ->
+                                if (!isKg) {
+                                    val lbVal = set.weightKg.toDoubleOrNull() ?: 0.0
+                                    val convertedKg = String.format(java.util.Locale.US, "%.1f", lbVal * 0.45359237)
+                                    set.copy(weightKg = convertedKg)
+                                } else {
+                                    set
+                                }
+                            }
+
+                            viewModel.logExercise(selectedExercise.trim(), currentWorkoutCategory, finalSets)
                             selectedExercise = ""
                             currentSets = listOf(
                                 WorkoutSet(1, "", ""),
@@ -546,6 +592,14 @@ fun LogWorkoutScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     exercise.sets.forEach { setItem ->
+                        val displayWeight = if (!isKg) {
+                            val kgVal = setItem.weightKg.toDoubleOrNull() ?: 0.0
+                            String.format(java.util.Locale.US, "%.1f", kgVal * 2.20462)
+                        } else {
+                            setItem.weightKg
+                        }
+                        val unitLabel = if (isKg) "kg" else "lb"
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -553,7 +607,7 @@ fun LogWorkoutScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Set : ${setItem.setNumber}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(0.9f))
-                            Text("Weight : ${setItem.weightKg} kg", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
+                            Text("Weight : $displayWeight $unitLabel", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
                             Text("Reps : ${setItem.reps}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.0f))
                         }
                     }
@@ -586,6 +640,14 @@ fun LogWorkoutScreen(
                     Text(text = exercise.exerciseName, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     exercise.sets.forEach { setItem ->
+                        val displayWeight = if (!isKg) {
+                            val kgVal = setItem.weightKg.toDoubleOrNull() ?: 0.0
+                            String.format(java.util.Locale.US, "%.1f", kgVal * 2.20462)
+                        } else {
+                            setItem.weightKg
+                        }
+                        val unitLabel = if (isKg) "kg" else "lb"
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -593,7 +655,7 @@ fun LogWorkoutScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Set : ${setItem.setNumber}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(0.9f))
-                            Text("Weight : ${setItem.weightKg} kg", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
+                            Text("Weight : $displayWeight $unitLabel", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
                             Text("Reps : ${setItem.reps}", color = TextWhite, fontSize = 14.sp, modifier = Modifier.weight(1.0f))
                         }
                     }

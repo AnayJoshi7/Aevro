@@ -8,8 +8,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.text.TextStyle
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -68,10 +71,17 @@ fun FitnessTrackerTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
-
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+        colorScheme = DarkColorScheme, // your existing color scheme
+        typography = AppTypography
+    ) {
+        // This ensures BasicTextField and any unstyled text automatically use SF Pro Rounded!
+        CompositionLocalProvider(
+            LocalTextStyle provides TextStyle(
+                fontFamily = OneplusSlate
+            )
+        ) {
+            content()
+        }
+    }
 }

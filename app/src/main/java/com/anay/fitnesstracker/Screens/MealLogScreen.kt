@@ -1,5 +1,6 @@
 package com.anay.fitnesstracker.Screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,11 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 
 private val BgGradient = Brush.verticalGradient(
@@ -94,11 +97,10 @@ fun MealLogScreen(
                 .clickable { onBack() }
                 .padding(vertical = 12.dp)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = PrimaryGreen,
-                modifier = Modifier.size(22.dp)
+            Image(
+                painter = painterResource(id = R.drawable.ic_back),
+                contentDescription = null,
+                modifier = Modifier.size(38.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
@@ -117,7 +119,7 @@ fun MealLogScreen(
             color = PrimaryGreen,
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.Start)
         )
 
         Spacer(modifier = Modifier.height(24.dp))

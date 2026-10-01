@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.UserProfile
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
-import com.anay.fitnesstracker.screens.BottomNavigationBar
+import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.util.ImageUtils
 
 private val CardBackground = Color(0xFF070708)
@@ -65,7 +65,12 @@ fun ProfileScreen(
             .statusBarsPadding()
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
+
+
     ) {
+        Spacer(modifier = Modifier.height(20.dp))
+
+
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -73,8 +78,10 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
+
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+
+
 
             // Top Header with Logout Pill on Top-Right
             Box(
@@ -85,7 +92,7 @@ fun ProfileScreen(
                     color = TextWhite,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.align(Alignment.TopStart)
                 )
 
                 // Logout Pill
@@ -176,7 +183,10 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            BottomNavigationBar(selectedTab = "Profile", onNavigate = onNavigate)
+            AppBottomNavigationBar(
+                currentRoute = Routes.PROFILE,
+                onNavigate = onNavigate
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -211,8 +221,8 @@ private fun ProfileInfoRow(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Normal)
-        Text(text = value, color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Normal)
+        Text(text = label, color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Text(text = value, color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -228,7 +238,7 @@ private fun SettingsCard(
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
             .padding(vertical = 22.dp, horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.Start
     ) {
         Text(
             text = "Settings",

@@ -2,12 +2,16 @@ package com.anay.fitnesstracker.data.viewmodel
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.anay.fitnesstracker.data.*
 import com.anay.fitnesstracker.data.repository.ExerciseRepository
 import com.anay.fitnesstracker.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +20,12 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 class FitnessViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = FirebaseFirestore.getInstance()
+    private val db = FirebaseFirestore.getInstance().apply {
+        // Guarantee local disk cache is enabled so data is preserved even offline
+        firestoreSettings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .build()
+    }
     private val sessionManager = SessionManager(application)
 
     private val _currentUser = MutableStateFlow<UserProfile?>(null)
@@ -31,6 +40,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     private val _isSessionChecking = MutableStateFlow(true)
     val isSessionChecking: StateFlow<Boolean> = _isSessionChecking.asStateFlow()
 
+    private var userSnapshotListener: ListenerRegistration? = null
+
     init {
         checkSavedSession()
     }
@@ -38,23 +49,36 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     private fun checkSavedSession() {
         val savedUsername = sessionManager.getUsername()
         if (!savedUsername.isNullOrEmpty()) {
-            viewModelScope.launch {
-                try {
-                    val snapshot = db.collection("users").document(savedUsername).get().await()
-                    if (snapshot.exists()) {
-                        _currentUser.value = snapshot.toObject(UserProfile::class.java)
-                    } else {
-                        sessionManager.clearSession()
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
-                    _isSessionChecking.value = false
-                }
-            }
+            attachUserListener(savedUsername)
         } else {
             _isSessionChecking.value = false
         }
+    }
+
+    // Listens to local cache first, then syncs with server when available
+    private fun attachUserListener(username: String) {
+        userSnapshotListener?.remove()
+        userSnapshotListener = db.collection("users").document(username)
+            .addSnapshotListener { snapshot, error ->
+                _isSessionChecking.value = false
+                if (error != null) {
+                    Log.w("FitnessViewModel", "Firestore listener notice: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        val profile = snapshot.toObject(UserProfile::class.java)
+                        _currentUser.value = profile
+                    } catch (e: Exception) {
+                        Log.e("FitnessViewModel", "Deserialization error", e)
+                    }
+                }
+            }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        userSnapshotListener?.remove()
     }
 
     fun updateInitialDetails(
@@ -82,7 +106,6 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             maintenanceCalories = maintCal
         )
     }
-    // Inside FitnessViewModel.kt:
 
     fun getStartOfTodayMillis(): Long {
         return java.time.LocalDate.now()
@@ -98,19 +121,13 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         val updatedUser = user.copy(meals = updatedMeals)
         _currentUser.value = updatedUser
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update("meals", updatedMeals)
-                    .await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        // Writes to local disk cache immediately without crashing on network error
+        db.collection("users").document(user.username)
+            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
     }
 
-    // 2. Log Exercise with Category
-    fun logExercise(exerciseName: String, category: String, sets: List<WorkoutSet>) {
+    // 2. Log Exercise (Safe against offline / UnknownHostException)
+    fun logExercise(exerciseName: String, category: String = "", sets: List<WorkoutSet>) {
         val user = _currentUser.value ?: return
         val newEntry = LoggedExercise(
             id = UUID.randomUUID().toString(),
@@ -134,38 +151,61 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         _currentUser.value = updatedUser
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update(
-                        mapOf(
-                            "loggedWorkouts" to updatedWorkouts,
-                            "notifications" to updatedNotifs
-                        )
+        // Clean Map serialization to prevent ApiUtil.invoke crash:
+        val workoutsPayload = updatedWorkouts.map { exercise ->
+            mapOf(
+                "id" to exercise.id,
+                "category" to exercise.category,
+                "exerciseName" to exercise.exerciseName,
+                "timestamp" to exercise.timestamp,
+                "sets" to exercise.sets.map { s ->
+                    mapOf(
+                        "setNumber" to s.setNumber,
+                        "weightKg" to s.weightKg,
+                        "reps" to s.reps
                     )
-                    .await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                }
+            )
         }
+
+        val notifsPayload = updatedNotifs.map { notif ->
+            mapOf(
+                "id" to notif.id,
+                "message" to notif.message,
+                "timestamp" to notif.timestamp
+            )
+        }
+
+        // Write directly to local Firestore SQLite cache (no .await() to block if DNS is offline)
+        db.collection("users").document(user.username)
+            .set(
+                mapOf(
+                    "loggedWorkouts" to workoutsPayload,
+                    "notifications" to notifsPayload
+                ),
+                SetOptions.merge()
+            )
+            .addOnSuccessListener {
+                Log.d("FitnessViewModel", "Workout saved to Firestore!")
+            }
+            .addOnFailureListener { e ->
+                Log.w("FitnessViewModel", "Write queued locally: ${e.message}")
+            }
     }
 
-    // 3. Delete an entire Logged Exercise Entry
+    fun logExercise(exerciseName: String, sets: List<WorkoutSet>) {
+        logExercise(exerciseName = exerciseName, category = "", sets = sets)
+    }
+
+    // 3. Delete a Logged Exercise Entry
     fun deleteLoggedExercise(exerciseId: String) {
         val user = _currentUser.value ?: return
         val updatedWorkouts = user.loggedWorkouts.filter { it.id != exerciseId }
         val updatedUser = user.copy(loggedWorkouts = updatedWorkouts)
         _currentUser.value = updatedUser
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update("loggedWorkouts", updatedWorkouts)
-                    .await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        db.collection("users").document(user.username)
+            .set(mapOf("loggedWorkouts" to updatedWorkouts), SetOptions.merge())
     }
 
     fun updateGoal(goal: String) {
@@ -195,44 +235,6 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         _tempOnboarding.value = _tempOnboarding.value.copy(workoutSplit = split)
         _highlightedSplit.value = split
     }
-    fun logExercise(exerciseName: String, sets: List<WorkoutSet>) {
-        val user = _currentUser.value ?: return
-        val newEntry = LoggedExercise(
-            id = UUID.randomUUID().toString(),
-            exerciseName = exerciseName,
-            sets = sets,
-            timestamp = System.currentTimeMillis()
-        )
-
-        val updatedWorkouts = listOf(newEntry) + user.loggedWorkouts
-        val newNotification = NotificationItem(
-            id = UUID.randomUUID().toString(),
-            message = "Logged: $exerciseName (${sets.size} sets)",
-            timestamp = System.currentTimeMillis()
-        )
-        val updatedNotifs = listOf(newNotification) + user.notifications
-
-        val updatedUser = user.copy(
-            loggedWorkouts = updatedWorkouts,
-            notifications = updatedNotifs
-        )
-        _currentUser.value = updatedUser
-
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update(
-                        mapOf(
-                            "loggedWorkouts" to updatedWorkouts,
-                            "notifications" to updatedNotifs
-                        )
-                    )
-                    .await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
 
     fun confirmAndSaveProfile(onComplete: () -> Unit) {
         val initialNotification = NotificationItem(
@@ -242,19 +244,15 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         val profile = _tempOnboarding.value.copy(notifications = listOf(initialNotification))
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(profile.username).set(profile).await()
-                sessionManager.saveUsername(profile.username)
-                _currentUser.value = profile
-                onComplete()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                sessionManager.saveUsername(profile.username)
-                _currentUser.value = profile
+        sessionManager.saveUsername(profile.username)
+        _currentUser.value = profile
+        attachUserListener(profile.username)
+
+        db.collection("users").document(profile.username)
+            .set(profile)
+            .addOnCompleteListener {
                 onComplete()
             }
-        }
     }
 
     fun login(username: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
@@ -264,7 +262,6 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
                 if (snapshot.exists()) {
                     var profile = snapshot.toObject(UserProfile::class.java)!!
 
-                    // Add dynamic login notification
                     val loginNotif = NotificationItem(
                         id = UUID.randomUUID().toString(),
                         message = "Recent Login to your Account",
@@ -274,20 +271,27 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
                     profile = profile.copy(notifications = updatedNotifs)
 
                     db.collection("users").document(profile.username)
-                        .update("notifications", updatedNotifs)
-                        .await()
+                        .set(mapOf("notifications" to updatedNotifs), SetOptions.merge())
 
                     sessionManager.saveUsername(profile.username)
                     _currentUser.value = profile
+                    attachUserListener(profile.username)
                     onSuccess()
                 } else {
                     onError("Username not found!")
                 }
             } catch (e: Exception) {
-                onError(e.localizedMessage ?: "Error during login")
+                // If offline, check if session exists locally
+                if (sessionManager.getUsername() == username.trim()) {
+                    attachUserListener(username.trim())
+                    onSuccess()
+                } else {
+                    onError(e.localizedMessage ?: "Error during login. Check internet connection.")
+                }
             }
         }
     }
+
     fun updateWorkoutPreferences(frequency: String, split: String) {
         val user = _currentUser.value ?: return
         val updatedUser = user.copy(
@@ -296,23 +300,19 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         _currentUser.value = updatedUser
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update(
-                        mapOf(
-                            "workoutFrequency" to frequency,
-                            "workoutSplit" to split
-                        )
-                    )
-                    .await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        db.collection("users").document(user.username)
+            .set(
+                mapOf(
+                    "workoutFrequency" to frequency,
+                    "workoutSplit" to split
+                ),
+                SetOptions.merge()
+            )
     }
 
     fun logout(onLoggedOut: () -> Unit) {
+        userSnapshotListener?.remove()
+        userSnapshotListener = null
         sessionManager.clearSession()
         _currentUser.value = null
         onLoggedOut()
@@ -339,16 +339,9 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         _currentUser.value = updated
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(current.username).set(updated).await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        db.collection("users").document(current.username)
+            .set(updated, SetOptions.merge())
     }
-
-    // In FitnessViewModel.kt:
 
     fun updateNutritionGoals(calories: Int, protein: Int) {
         val user = _currentUser.value ?: return
@@ -358,19 +351,14 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         _currentUser.value = updated
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update(
-                        mapOf(
-                            "dailyCalorieGoal" to calories,
-                            "dailyProteinGoal" to protein
-                        )
-                    ).await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        db.collection("users").document(user.username)
+            .set(
+                mapOf(
+                    "dailyCalorieGoal" to calories,
+                    "dailyProteinGoal" to protein
+                ),
+                SetOptions.merge()
+            )
     }
 
     fun updateCustomDayMuscleGroup(dayName: String, muscleGroup: String) {
@@ -387,15 +375,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         val updated = user.copy(customSchedule = daysList)
         _currentUser.value = updated
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update("customSchedule", daysList)
-                    .await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        db.collection("users").document(user.username)
+            .set(mapOf("customSchedule" to daysList), SetOptions.merge())
     }
 
     fun addExerciseToDay(dayName: String, exerciseName: String) {
@@ -422,19 +403,14 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         val updated = user.copy(customSchedule = daysList, customExercises = customExList)
         _currentUser.value = updated
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update(
-                        mapOf(
-                            "customSchedule" to daysList,
-                            "customExercises" to customExList
-                        )
-                    ).await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        db.collection("users").document(user.username)
+            .set(
+                mapOf(
+                    "customSchedule" to daysList,
+                    "customExercises" to customExList
+                ),
+                SetOptions.merge()
+            )
     }
 
     fun deleteExerciseFromDay(dayName: String, exerciseName: String) {
@@ -448,15 +424,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             val updated = user.copy(customSchedule = daysList)
             _currentUser.value = updated
 
-            viewModelScope.launch {
-                try {
-                    db.collection("users").document(user.username)
-                        .update("customSchedule", daysList)
-                        .await()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
+            db.collection("users").document(user.username)
+                .set(mapOf("customSchedule" to daysList), SetOptions.merge())
         }
     }
 
@@ -478,11 +447,11 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             id = UUID.randomUUID().toString(),
             name = name,
             calories = calories,
-            protein = protein
+            protein = protein,
+            timestamp = System.currentTimeMillis()
         )
         val updatedMeals = listOf(newMeal) + user.meals
 
-        // Add dynamic meal notification
         val mealNotif = NotificationItem(
             id = UUID.randomUUID().toString(),
             message = "You logged a meal: $name ($calories kcal)",
@@ -493,19 +462,13 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         val updatedUser = user.copy(meals = updatedMeals, notifications = updatedNotifs)
         _currentUser.value = updatedUser
 
-        viewModelScope.launch {
-            try {
-                db.collection("users").document(user.username)
-                    .update(
-                        mapOf(
-                            "meals" to updatedMeals,
-                            "notifications" to updatedNotifs
-                        )
-                    )
-                    .await()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        db.collection("users").document(user.username)
+            .set(
+                mapOf(
+                    "meals" to updatedMeals,
+                    "notifications" to updatedNotifs
+                ),
+                SetOptions.merge()
+            )
     }
 }

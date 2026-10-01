@@ -83,13 +83,13 @@ fun AboutScreen(
             Image(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = null,
-                modifier = Modifier.size(38.dp)
+                modifier = Modifier.size(45.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "FitnessTracker", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(text = "FitMate", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(28.dp))
 
@@ -104,7 +104,7 @@ fun AboutScreen(
             Text(text = "About the App", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "Fitness Tracker helps you keep your fitness journey organized in one place...",
+                text = "FitMate is a fitness app that helps you keep your fitness journey organized in one place...",
                 color = TextWhite,
                 fontSize = 15.sp,
                 lineHeight = 22.sp

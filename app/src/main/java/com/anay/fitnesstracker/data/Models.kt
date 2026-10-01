@@ -1,4 +1,5 @@
 package com.anay.fitnesstracker.data
+import com.google.firebase.firestore.Exclude
 
 data class CustomDayWorkout(
     val dayName: String = "",        // e.g., "Monday", "Tuesday"
@@ -10,7 +11,11 @@ data class WorkoutSet(
     val setNumber: Int = 1,
     val weightKg: String = "",
     val reps: String = ""
-)
+) {
+    @get:Exclude
+    val weight: String
+        get() = weightKg
+}
 
 data class LoggedExercise(
     val id: String = "",
