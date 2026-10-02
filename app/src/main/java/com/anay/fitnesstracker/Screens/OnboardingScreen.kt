@@ -28,11 +28,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.anay.fitnesstracker.components.NextPillButton
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.components.SplashTopIcons
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
-
-
 
 private val DarkPillColor = Color(0xFF000000)
 private val PrimaryGreen = Color(0xFF27D07F)
@@ -60,7 +59,6 @@ fun OnboardingScreen(
         modifier = Modifier
             .fillMaxSize()
             .appBackgroundGradient()
-
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -183,55 +181,26 @@ fun OnboardingScreen(
 
         SplashTopIcons()
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Next Button Pill
-        Row(
-            modifier = Modifier
-                .width(180.dp)
-                .height(54.dp)
-                .clip(RoundedCornerShape(27.dp))
-                .background(DarkPillColor)
-                .clickable {
-                    val year = birthYear.toIntOrNull() ?: 2000
-                    val height = heightText.toDoubleOrNull() ?: 175.0
-                    val weight = weightText.toDoubleOrNull() ?: 70.0
+        // Next Button Pill from components
+        NextPillButton(
+            onClick = {
+                val year = birthYear.toIntOrNull() ?: 2000
+                val height = heightText.toDoubleOrNull() ?: 175.0
+                val weight = weightText.toDoubleOrNull() ?: 70.0
 
-                    viewModel.updateInitialDetails(
-                        name = name.ifBlank { "User" },
-                        gender = if (selectedGender != "Gender") selectedGender else "Male",
-                        dobYear = year,
-                        contact = contactNo,
-                        heightCm = height,
-                        weightKg = weight
-                    )
-                    onNext()
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Next",
-                color = PrimaryGreen,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Next",
-                    tint = Color.Black,
-                    modifier = Modifier.size(16.dp)
+                viewModel.updateInitialDetails(
+                    name = name.ifBlank { "User" },
+                    gender = if (selectedGender != "Gender") selectedGender else "Male",
+                    dobYear = year,
+                    contact = contactNo,
+                    heightCm = height,
+                    weightKg = weight
                 )
+                onNext()
             }
-        }
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
     }

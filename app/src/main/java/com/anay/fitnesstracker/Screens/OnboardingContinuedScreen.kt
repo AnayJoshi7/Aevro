@@ -56,10 +56,6 @@ fun OnboardingContinuedScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            SplashTopIcons()
-
-
             Spacer(modifier = Modifier.height(24.dp))
 
             Column(
@@ -125,9 +121,8 @@ fun OnboardingContinuedScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(30.dp))
             icons()
-            Spacer(modifier = Modifier.height(24.dp))
         }
 
         NextPillButton(
@@ -135,7 +130,7 @@ fun OnboardingContinuedScreen(
                 viewModel.updateGoal(selectedGoal)
                 onNext()
             },
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 50.dp)
         )
     }
 }

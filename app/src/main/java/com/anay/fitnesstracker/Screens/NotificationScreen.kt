@@ -56,6 +56,8 @@ fun NotificationScreen(
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier

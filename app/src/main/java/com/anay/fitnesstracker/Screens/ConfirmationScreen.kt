@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.components.NextPillButton
 import com.anay.fitnesstracker.ui.theme.*
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.components.icons
+
 
 @Composable
 fun ConfirmationScreen(
@@ -34,13 +36,16 @@ fun ConfirmationScreen(
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
+
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
             Spacer(modifier = Modifier.height(28.dp))
 
@@ -50,7 +55,7 @@ fun ConfirmationScreen(
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 34.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start
             )
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -86,6 +91,7 @@ fun ConfirmationScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+            icons()
         }
 
         NextPillButton(
@@ -94,7 +100,7 @@ fun ConfirmationScreen(
                     onEnterDashboard()
                 }
             },
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 60.dp)
         )
     }
 }

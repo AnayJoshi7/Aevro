@@ -239,7 +239,7 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     fun confirmAndSaveProfile(onComplete: () -> Unit) {
         val initialNotification = NotificationItem(
             id = UUID.randomUUID().toString(),
-            message = "Account created successfully! Welcome to Fitness Tracker.",
+            message = "Account created successfully! Welcome to Aevro.",
             timestamp = System.currentTimeMillis()
         )
         val profile = _tempOnboarding.value.copy(notifications = listOf(initialNotification))
