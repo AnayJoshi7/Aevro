@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FitMate"
+rootProject.name = "Aevro"
 include(":app")

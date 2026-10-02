@@ -83,7 +83,7 @@ fun AboutScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "FitMate", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(text = "Aevro", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(28.dp))
 
@@ -98,7 +98,7 @@ fun AboutScreen(
             Text(text = "About the App", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "FitMate is a fitness app that helps you keep your fitness journey organized in one place...",
+                text = "Train. Fuel. Progress",
                 color = TextWhite,
                 fontSize = 15.sp,
                 lineHeight = 22.sp
