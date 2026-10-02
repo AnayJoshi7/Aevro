@@ -54,12 +54,6 @@ information easy to see without making the experience feel cluttered.
 - Age, height, weight and fitness goal
 - User-specific data stored through Firebase
 
-###  Motivation
-
-- Daily motivational content retrieved through a REST API
-- Loading and error states
-- Retry support when the request fails
-
 ---
 
 ## Built With
