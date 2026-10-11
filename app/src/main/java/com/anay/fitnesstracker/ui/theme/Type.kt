@@ -8,12 +8,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 
-val SfProRounded = FontFamily(
-    Font(R.font.sf_pro_rounded_regular, FontWeight.Normal),
-    Font(R.font.sf_pro_rounded_medium, FontWeight.Medium),
-    Font(R.font.sf_pro_rounded_semibold, FontWeight.SemiBold),
-    Font(R.font.sf_pro_rounded_bold, FontWeight.Bold)
-)
+//val SfProRounded = FontFamily(
+//    Font(R.font.sf_pro_rounded_regular, FontWeight.Normal),
+//    Font(R.font.sf_pro_rounded_medium, FontWeight.Medium),
+//    Font(R.font.sf_pro_rounded_semibold, FontWeight.SemiBold),
+//    Font(R.font.sf_pro_rounded_bold, FontWeight.Bold)
+//)
 
 val OneplusSlate = FontFamily(
     Font(R.font.oneplus_slate_regular, FontWeight.Normal),

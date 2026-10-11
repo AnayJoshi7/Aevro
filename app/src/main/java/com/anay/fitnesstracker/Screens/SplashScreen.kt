@@ -42,12 +42,14 @@ fun SplashScreen(
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .appBackgroundGradient()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .appBackgroundGradient()
-
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .imePadding()
@@ -262,3 +264,4 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}

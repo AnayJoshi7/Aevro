@@ -1,12 +1,17 @@
 package com.anay.fitnesstracker.Screens
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,32 +28,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Leaderboard
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.anay.fitnesstracker.Routes
+import com.anay.fitnesstracker.components.AppBottomNavigationBar
+import com.anay.fitnesstracker.data.StepSensorManager
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
-import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
-
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -56,9 +59,6 @@ private val CardBackground = Color(0xFF070708)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF9E9E9E)
-private val BottomNavBg = Color(0xFF6B6E70)
-private val BottomNavIconBg = Color(0xFF1E1E1E)
-private val SelectedTabBg = Color(0xFF3DDC84).copy(alpha = 0.30f)
 
 @Composable
 fun DashboardScreen(
@@ -66,31 +66,66 @@ fun DashboardScreen(
     onNavigateMealLog: () -> Unit,
     fitnessViewModel: FitnessViewModel
 ) {
+    val context = LocalContext.current
     val user by fitnessViewModel.currentUser.collectAsState()
     val calorieTarget = user?.dailyCalorieGoal ?: 2400
     val todayWorkout = WorkoutScheduleHelper.getTodayWorkout(user)
 
-    // 1. Determine target exercises for today: check title or parse from exerciseCountText (e.g., "7 Exercises" -> 7)
+    // --- One-Time Physical Activity Permission Request on First Login ---
+    val permissionPrefs = remember { context.getSharedPreferences("app_permission_prefs", Context.MODE_PRIVATE) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        permissionPrefs.edit().putBoolean("activity_permission_prompted", true).apply()
+    }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasPromptedBefore = permissionPrefs.getBoolean("activity_permission_prompted", false)
+
+            if (!hasPermission && !hasPromptedBefore) {
+                permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+            }
+        }
+    }
+
+    // --- Step Tracker Lifecycle ---
+    val stepSensorManager = remember { StepSensorManager(context) }
+    val currentSteps by stepSensorManager.todaySteps.collectAsState()
+
+    DisposableEffect(Unit) {
+        stepSensorManager.startListening()
+        onDispose {
+            stepSensorManager.stopListening()
+        }
+    }
+
+    val stepGoal = 10000
+    val stepsFraction = (currentSteps.toFloat() / stepGoal.toFloat()).coerceIn(0f, 1f)
+    val stepsPercent = (stepsFraction * 100).toInt()
+
     val targetExercisesToday = remember(todayWorkout.title, todayWorkout.exerciseCountText) {
         val mappedCount = when (todayWorkout.title) {
-            "Push Day" -> 8
-            "Pull Day" -> 9
-            "Leg Day" -> 8
-            "Upper Body" -> 9
-            "Lower Body" -> 7
-            "Full Body" -> 9
+            "Push Day" -> 5
+            "Pull Day" -> 6
+            "Leg Day" -> 5
+            "Upper Body" -> 6
+            "Lower Body" -> 5
+            "Full Body" -> 6
             else -> 0
         }
         if (mappedCount > 0) {
             mappedCount
         } else {
-            // Fallback: extract first number found in exerciseCountText (e.g. "8 Exercises" -> 8, defaults to 5)
             val digits = todayWorkout.exerciseCountText.filter { it.isDigit() }
             digits.toIntOrNull() ?: 5
         }
     }
 
-    // 2. Start of today (midnight) for resetting metrics daily
     val startOfTodayMillis = remember {
         LocalDate.now()
             .atStartOfDay(ZoneId.systemDefault())
@@ -98,14 +133,16 @@ fun DashboardScreen(
             .toEpochMilli()
     }
 
-    // Daily calories consumed (filtered for today only)
     val totalCaloriesConsumedToday = remember(user?.meals, startOfTodayMillis) {
         user?.meals
             ?.filter { it.timestamp >= startOfTodayMillis }
             ?.sumOf { it.calories } ?: 0
     }
+    val caloriesFraction = if (calorieTarget > 0) {
+        (totalCaloriesConsumedToday.toFloat() / calorieTarget.toFloat()).coerceIn(0f, 1f)
+    } else 0f
+    val caloriesPercent = (caloriesFraction * 100).toInt()
 
-    // Distinct logged exercises completed today
     val completedExercisesToday = remember(user?.loggedWorkouts, startOfTodayMillis) {
         user?.loggedWorkouts
             ?.filter { it.timestamp >= startOfTodayMillis }
@@ -114,120 +151,126 @@ fun DashboardScreen(
             ?.size ?: 0
     }
 
-    // 3. Compute dynamic progress ratio and percentage
-    val progressFraction = if (targetExercisesToday > 0) {
+    val workoutProgressFraction = if (targetExercisesToday > 0) {
         (completedExercisesToday.toFloat() / targetExercisesToday.toFloat()).coerceIn(0f, 1f)
     } else {
         if (completedExercisesToday > 0) 1f else 0f
     }
-    val progressPercent = (progressFraction * 100).toInt()
+    val workoutProgressPercent = (workoutProgressFraction * 100).toInt()
 
-    val backgroundGradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF1B1C1E),
-            Color(0xFF131416),
-            Color(0xFF2C2E31),
-            Color(0xFF111214)
-        )
-    )
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .appBackgroundGradient()
-
-            .statusBarsPadding()
-            .navigationBarsPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
-
-        // Main scrollable content
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Greeting matching new design
-            Text(
-                text = "Greetings, ${user?.name?.ifBlank { "Anay" } ?: "Anay"} 👋",
-                color = PrimaryGreen,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(36.dp))
-
-            // Dynamic Today's Progress Card
-            TodayProgressCard(
-                completed = completedExercisesToday,
-                target = targetExercisesToday,
-                fraction = progressFraction,
-                percent = progressPercent
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Calories Card (Matches design on right)
-            CaloriesCard(
-                consumed = totalCaloriesConsumedToday,
-                target = calorieTarget,
-                onClick = onNavigateMealLog
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Today's Workout Section Header
-            Text(
-                text = "Today’s Workout",
-                modifier = Modifier.fillMaxWidth(),
-                color = PrimaryGreen,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Today's Workout Card
-            WorkoutCard(
-                title = todayWorkout.title,
-                muscles = todayWorkout.muscleGroups,
-                exerciseCount = todayWorkout.exerciseCountText,
-                onClick = {
-                    todayWorkout.route?.let { onNavigate(it) }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        // Fixed bottom navigation container
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            HorizontalDivider(
-                color = Color(0xFF8E9094).copy(alpha = 0.5f),
-                thickness = 1.dp,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Spacer(modifier = Modifier.height(20.dp))
 
-            AppBottomNavigationBar(
-                currentRoute = Routes.DASHBOARD,
-                onNavigate = onNavigate
-            )
+                Text(
+                    text = "Greetings, ${user?.name?.ifBlank { "Anay" } ?: "Anay"} 👋",
+                    color = PrimaryGreen,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(28.dp))
+
+                Text(
+                    text = "Today’s Progress",
+                    color = TextWhite,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                TodayProgressCard(
+                    completed = completedExercisesToday,
+                    target = targetExercisesToday,
+                    fraction = workoutProgressFraction,
+                    percent = workoutProgressPercent
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                CaloriesCard(
+                    consumed = totalCaloriesConsumedToday,
+                    target = calorieTarget,
+                    fraction = caloriesFraction,
+                    percent = caloriesPercent,
+                    onClick = onNavigateMealLog
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                StepsCard(
+                    steps = currentSteps,
+                    target = stepGoal,
+                    fraction = stepsFraction,
+                    percent = stepsPercent
+                )
+
+                Spacer(modifier = Modifier.height(26.dp))
+
+                Text(
+                    text = "Today’s Workout",
+                    modifier = Modifier.fillMaxWidth(),
+                    color = PrimaryGreen,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                WorkoutCard(
+                    title = todayWorkout.title,
+                    muscles = todayWorkout.muscleGroups,
+                    exerciseCount = todayWorkout.exerciseCountText,
+                    onClick = {
+                        todayWorkout.route?.let { onNavigate(it) }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                HorizontalDivider(
+                    color = Color(0xFF8E9094).copy(alpha = 0.5f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                AppBottomNavigationBar(
+                    currentRoute = Routes.DASHBOARD,
+                    onNavigate = onNavigate
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }
@@ -242,46 +285,39 @@ private fun TodayProgressCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
-            .padding(vertical = 24.dp, horizontal = 24.dp),
+            .padding(vertical = 22.dp, horizontal = 22.dp),
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text = "Today’s Progress",
+            text = "Workouts Completed",
             color = TextWhite,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = "$completed/$target",
-            color = TextWhite,
-            fontSize = 36.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "Workouts Completed",
+            text = "$completed/$target",
             color = TextWhite,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // Progress bar and % representation
+
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
             Box(
                 modifier = Modifier
-                    .size(width = 130.dp, height = 12.dp)
+                    .width(130.dp)
+                    .height(14.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(Color(0xFF5E6065))
             ) {
@@ -294,7 +330,7 @@ private fun TodayProgressCard(
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(18.dp))
 
             Text(
                 text = "$percent%",
@@ -304,6 +340,7 @@ private fun TodayProgressCard(
             )
         }
 
+        Spacer(modifier = Modifier.height(4.dp))
 
 
     }
@@ -313,6 +350,8 @@ private fun TodayProgressCard(
 private fun CaloriesCard(
     consumed: Int,
     target: Int,
+    fraction: Float,
+    percent: Int,
     onClick: () -> Unit
 ) {
     Column(
@@ -321,47 +360,76 @@ private fun CaloriesCard(
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
             .clickable { onClick() }
-            .padding(horizontal = 24.dp, vertical = 22.dp)
+            .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Text(
             text = "Calories",
             color = TextWhite,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.Bottom
         ) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = "$consumed",
-                    color = TextWhite,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = " /$target",
-                    color = TextWhite,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 3.dp)
-                )
-            }
-
+            Text(
+                text = "$consumed ",
+                color = TextWhite,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "/$target",
+                color = TextWhite,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 3.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = "Kcal",
-                color = TextWhite,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Normal
+                color = TextMuted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.padding(bottom = 4.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(130.dp)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFF5E6065))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFFE4E4E6))
+                )
+            }
+
+            Spacer(modifier = Modifier.width(18.dp))
+
+            Text(
+                text = "$percent%",
+                color = TextWhite,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -370,14 +438,14 @@ private fun CaloriesCard(
         ) {
             Text(
                 text = "Click to log your meals",
-                color = TextWhite,
-                fontSize = 13.sp,
+                color = TextMuted,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Normal
             )
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(24.dp)
                     .clip(CircleShape)
                     .background(TextWhite),
                 contentAlignment = Alignment.Center
@@ -386,9 +454,84 @@ private fun CaloriesCard(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = "Log Meals",
                     tint = Color.Black,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun StepsCard(
+    steps: Int,
+    target: Int,
+    fraction: Float,
+    percent: Int
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(CardBackground)
+            .padding(horizontal = 22.dp, vertical = 20.dp)
+    ) {
+        Text(
+            text = "Steps",
+            color = TextWhite,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = "$steps ",
+                color = TextWhite,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "/$target",
+                color = TextWhite,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 3.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(130.dp)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFF5E6065))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFFE4E4E6))
+                )
+            }
+
+            Spacer(modifier = Modifier.width(18.dp))
+
+            Text(
+                text = "$percent%",
+                color = TextWhite,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
@@ -422,7 +565,7 @@ private fun WorkoutCard(
                 color = TextWhite,
                 fontSize = 14.sp
             )
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = exerciseCount,
                 color = TextMuted,
@@ -432,7 +575,7 @@ private fun WorkoutCard(
 
         Box(
             modifier = Modifier
-                .size(30.dp)
+                .size(28.dp)
                 .clip(CircleShape)
                 .background(TextWhite),
             contentAlignment = Alignment.Center
@@ -441,86 +584,8 @@ private fun WorkoutCard(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "Start Workout",
                 tint = Color.Black,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(15.dp)
             )
         }
     }
 }
-
-
-//@Composable
-//private fun BottomNavigationBar(
-//    onNavigate: (String) -> Unit
-//) {
-//    Row(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .height(64.dp)
-//            .clip(RoundedCornerShape(22.dp))
-//            .background(BottomNavBg)
-//            .padding(horizontal = 8.dp, vertical = 6.dp),
-//        horizontalArrangement = Arrangement.SpaceBetween,
-//        verticalAlignment = Alignment.CenterVertically
-//    ) {
-//        BottomNavItem(
-//            icon = Icons.Default.Home,
-//            label = "Home",
-//            selected = true,
-//            onClick = { onNavigate(Routes.DASHBOARD) }
-//        )
-//        BottomNavItem(
-//            icon = Icons.Default.FitnessCenter,
-//            label = "Workouts",
-//            selected = false,
-//            onClick = { onNavigate(Routes.WORKOUTS) }
-//        )
-//        BottomNavItem(
-//            icon = Icons.Default.Leaderboard,
-//            label = "Progress",
-//            selected = false,
-//            onClick = { onNavigate(Routes.PROGRESS) }
-//        )
-//        BottomNavItem(
-//            icon = Icons.Default.Person,
-//            label = "Profile",
-//            selected = false,
-//            onClick = { onNavigate(Routes.PROFILE) }
-//        )
-//    }
-//}
-//
-//@Composable
-//private fun RowScope.BottomNavItem(
-//    icon: ImageVector,
-//    label: String,
-//    selected: Boolean,
-//    onClick: () -> Unit
-//) {
-//    Column(
-//        modifier = Modifier
-//            .weight(1f)
-//            .fillMaxHeight()
-//            .clip(RoundedCornerShape(16.dp))
-//            .background(if (selected) SelectedTabBg else Color.Transparent)
-//            .clickable { onClick() },
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center
-//    ) {
-//        Icon(
-//            imageVector = icon,
-//            contentDescription = label,
-//            tint = BottomNavIconBg,
-//            modifier = Modifier.size(22.dp)
-//        )
-//
-//        Spacer(modifier = Modifier.height(2.dp))
-//
-//        Text(
-//            text = label,
-//            color = BottomNavIconBg,
-//            fontSize = 11.sp,
-//            fontWeight = FontWeight.SemiBold,
-//            maxLines = 1
-//        )
-//    }
-//}
