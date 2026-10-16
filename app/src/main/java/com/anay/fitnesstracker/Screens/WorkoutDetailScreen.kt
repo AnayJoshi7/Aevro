@@ -2,6 +2,7 @@ package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -105,6 +106,8 @@ fun WorkoutDetailScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(22.dp))
                             .background(CardBackground)
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                             .padding(20.dp)
                     ) {
                         Text(
@@ -138,6 +141,8 @@ fun WorkoutDetailScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
                         .background(CardBackground)
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                         .padding(16.dp)
                 ) {
                     Text(

@@ -1,6 +1,7 @@
 package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -175,7 +176,9 @@ fun WorkoutScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             ActionPillButton(
+
                 title = "Log Workout",
+
                 onClick = { onNavigate(Routes.LOG_WORKOUT) }
             )
 
@@ -279,6 +282,8 @@ fun WorkoutDayClickableCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .clickable { onClick() }
             .padding(horizontal = 22.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -335,8 +340,10 @@ private fun ActionPillButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(54.dp)
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24 .dp))
+
             .clickable { onClick() }
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,

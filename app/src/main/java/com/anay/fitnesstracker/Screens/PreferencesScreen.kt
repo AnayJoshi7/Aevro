@@ -1,6 +1,7 @@
 package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -59,6 +60,8 @@ fun PreferencesScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(20.dp)
             ) {
                 Text(
@@ -75,8 +78,10 @@ fun PreferencesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(42.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (isSelected) Color(0xFF3DDC84).copy(alpha = 0.80f) else Color.White)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (isSelected) Color(0x803DDC84).copy(alpha = 0.80f) else Color.White)
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+
                             .clickable { viewModel.updateFrequency(freq) }
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.CenterStart
@@ -109,6 +114,8 @@ fun PreferencesScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(20.dp)
             ) {
                 splits.forEach { split ->
@@ -117,8 +124,10 @@ fun PreferencesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(42.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (isSelected) Color(0xFF3DDC84).copy(alpha = 0.80f) else Color.White)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (isSelected) Color(0x803DDC84).copy(alpha = 0.80f) else Color.White)
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+
                             .clickable {
                                 viewModel.selectExplicitSplit(split)
                                 onNavigateWorkoutSplit()
@@ -142,8 +151,10 @@ fun PreferencesScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .clip(RoundedCornerShape(26.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(Color(0xFF000000))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {

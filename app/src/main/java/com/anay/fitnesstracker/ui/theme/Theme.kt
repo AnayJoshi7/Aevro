@@ -25,7 +25,12 @@ import androidx.compose.ui.graphics.Color
 
 
 val CardBackground = Color(0xFF070708)
-val PrimaryGreen = Color(0xFF27D07F)
+val PrimaryGreen = Color(0xFF3DDC84)
+val gblue = Color(0xFF0673CB)
+val royalblue = Color(0xFF014BAA)
+val lightcream = Color(0xFFF8F3F0)
+
+
 val SelectedGreen = Color(0xFF2EAA68)
 val TextWhite = Color(0xFFFFFFFF)
 val TextMuted = Color(0xFF9E9E9E)
@@ -76,7 +81,7 @@ fun FitnessTrackerTheme(
         // This ensures BasicTextField and any unstyled text automatically use SF Pro Rounded!
         CompositionLocalProvider(
             LocalTextStyle provides TextStyle(
-                fontFamily = OneplusSlate
+                fontFamily = SfProDisplay
             )
         ) {
             content()

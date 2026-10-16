@@ -2,6 +2,7 @@ package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -133,6 +134,8 @@ fun MealLogScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                 .padding(22.dp)
         ) {
             Row(
@@ -152,6 +155,8 @@ fun MealLogScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF1E1E20))
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                         .clickable {
                             if (isEditingGoals) {
                                 val newCal = editCaloriesText.toIntOrNull() ?: targetCalories
@@ -202,7 +207,7 @@ fun MealLogScreen(
                     Text(
                         text = "Kcals",
                         color = Color.LightGray,
-                        fontSize = 13.sp
+                        fontSize = 13. sp
                     )
                 }
             } else {
@@ -319,6 +324,8 @@ fun MealLogScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                 .padding(20.dp)
         ) {
             // Meal Name
@@ -468,8 +475,10 @@ fun MealLogScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(20.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -481,8 +490,10 @@ fun MealLogScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(22.dp))
+                            .clip(RoundedCornerShape(24.dp))
                             .background(CardBackground)
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                             .padding(18.dp)
                     ) {
                         Row(

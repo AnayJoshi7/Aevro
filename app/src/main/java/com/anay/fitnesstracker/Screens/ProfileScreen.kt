@@ -2,6 +2,7 @@ package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -104,6 +105,8 @@ fun ProfileScreen(
                         .align(Alignment.CenterEnd)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF241515))
+                        .border(1.dp, Color(0xFFE53935).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+
                         .clickable {
                             fitnessViewModel.logout {
                                 onLogout()
@@ -135,6 +138,8 @@ fun ProfileScreen(
                 modifier = Modifier
                     .size(105.dp)
                     .clip(CircleShape)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), CircleShape)
+
                     .background(AvatarColor),
                 contentAlignment = Alignment.Center
             ) {
@@ -207,6 +212,8 @@ private fun UserInfoCard(user: UserProfile?) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .padding(horizontal = 22.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -240,6 +247,8 @@ private fun SettingsCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .padding(vertical = 22.dp, horizontal = 20.dp),
         horizontalAlignment = Alignment.Start
     ) {
@@ -268,12 +277,14 @@ private fun SettingsButton(label: String, onClick: () -> Unit) {
             .height(48.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(SettingsItemColor)
+            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .clickable { onClick() }
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(text = label, color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Medium)
 
         Box(
             modifier = Modifier

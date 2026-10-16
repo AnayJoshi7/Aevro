@@ -2,6 +2,7 @@ package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -80,7 +81,7 @@ fun NotificationScreen(
             color = PrimaryGreen,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.Start)
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -107,6 +108,8 @@ fun NotificationScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(22.dp))
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                             .background(CardBackground)
                             .padding(vertical = 20.dp, horizontal = 20.dp),
                         contentAlignment = Alignment.Center

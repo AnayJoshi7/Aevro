@@ -51,7 +51,10 @@ import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.data.StepSensorManager
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.PrimaryGreen
+import androidx.compose.foundation.border
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import com.anay.fitnesstracker.ui.theme.gblue
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -170,7 +173,7 @@ fun DashboardScreen(
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
             Column(
                 modifier = Modifier
@@ -185,20 +188,20 @@ fun DashboardScreen(
                 Text(
                     text = "Greetings, ${user?.name?.ifBlank { "Anay" } ?: "Anay"} 👋",
                     color = PrimaryGreen,
-                    fontSize = 24.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(36.dp))
 
                 Text(
                     text = "Today’s Progress",
-                    color = TextWhite,
-                    fontSize = 20.sp,
+                    color = PrimaryGreen ,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 TodayProgressCard(
                     completed = completedExercisesToday,
@@ -232,7 +235,7 @@ fun DashboardScreen(
                     text = "Today’s Workout",
                     modifier = Modifier.fillMaxWidth(),
                     color = PrimaryGreen,
-                    fontSize = 19.sp,
+                    fontSize = 21.sp,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -286,6 +289,8 @@ private fun TodayProgressCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .background(CardBackground)
             .padding(vertical = 22.dp, horizontal = 22.dp),
         horizontalAlignment = Alignment.Start
@@ -293,8 +298,8 @@ private fun TodayProgressCard(
         Text(
             text = "Workouts Completed",
             color = TextWhite,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -359,14 +364,16 @@ private fun CaloriesCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .clickable { onClick() }
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Text(
             text = "Calories",
             color = TextWhite,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -377,7 +384,7 @@ private fun CaloriesCard(
             Text(
                 text = "$consumed ",
                 color = TextWhite,
-                fontSize = 32.sp,
+                fontSize = 34.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -391,7 +398,7 @@ private fun CaloriesCard(
             Text(
                 text = "Kcal",
                 color = TextMuted,
-                fontSize = 12.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
@@ -473,13 +480,14 @@ private fun StepsCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Text(
             text = "Steps",
             color = TextWhite,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -490,7 +498,7 @@ private fun StepsCard(
             Text(
                 text = "$steps ",
                 color = TextWhite,
-                fontSize = 32.sp,
+                fontSize = 34.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -548,6 +556,8 @@ private fun WorkoutCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .background(CardBackground)
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .clickable { onClick() }
             .padding(horizontal = 24.dp, vertical = 22.dp),
         verticalAlignment = Alignment.CenterVertically

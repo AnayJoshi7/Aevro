@@ -1,6 +1,7 @@
 package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -63,6 +64,8 @@ fun OnboardingContinuedScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(24.dp)
             ) {
                 Text(
@@ -89,6 +92,8 @@ fun OnboardingContinuedScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(24.dp)
             ) {
                 Text(text = "Select your fitness goal", color = TextWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -102,7 +107,9 @@ fun OnboardingContinuedScreen(
                             .fillMaxWidth()
                             .height(48.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(if (isSelected) Color(0xFF3DDC84).copy(alpha = 0.80f) else Color.White)
+                            .background(if (isSelected) Color(0x803DDC84).copy(alpha = 0.80f) else Color.White)
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+
                             .clickable {
                                 selectedGoal = goal
                                 viewModel.updateGoal(goal)

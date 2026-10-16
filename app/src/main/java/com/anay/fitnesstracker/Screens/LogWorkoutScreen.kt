@@ -175,6 +175,8 @@ fun LogWorkoutScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                 .padding(20.dp)
         ) {
             Text(text = "Name of the exercise", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
@@ -564,6 +566,8 @@ fun LogWorkoutScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(20.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -576,6 +580,8 @@ fun LogWorkoutScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
                         .background(CardBackground)
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                         .padding(18.dp)
                 ) {
                     Row(
@@ -638,6 +644,8 @@ fun LogWorkoutScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
                         .background(CardBackground)
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                         .padding(18.dp)
                 ) {
                     Text(text = exercise.exerciseName, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)

@@ -1,6 +1,7 @@
 package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,6 +67,8 @@ fun ConfirmationScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(20.dp)
             ) {
                 Text("Your Username", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -81,6 +85,8 @@ fun ConfirmationScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {

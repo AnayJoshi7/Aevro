@@ -112,6 +112,8 @@ fun AddExercisesScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                 .padding(22.dp)
         ) {
             Text(

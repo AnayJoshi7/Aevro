@@ -3,6 +3,7 @@ package com.anay.fitnesstracker.Screens
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -74,7 +75,7 @@ fun SplashScreen(
             // Main Tagline
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Train.",
+                    text = "Train",
                     color = TextWhite,
                     fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
@@ -82,7 +83,7 @@ fun SplashScreen(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Fuel.",
+                    text = "Fuel",
                     color = PrimaryGreen,
                     fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
@@ -90,7 +91,7 @@ fun SplashScreen(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Progress.",
+                    text = "Progress",
                     color = TextWhite,
                     fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
@@ -116,8 +117,10 @@ fun SplashScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                     .padding(horizontal = 18.dp, vertical = 22.dp)
             ) {
                 // Typable Username Field
@@ -238,6 +241,8 @@ fun SplashScreen(
                     .height(56.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(CardBackground)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+
                     .clickable { onNavigateSignUp() },
                 contentAlignment = Alignment.Center
             ) {

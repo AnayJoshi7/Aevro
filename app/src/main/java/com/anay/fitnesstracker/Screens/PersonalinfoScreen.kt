@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -127,6 +128,8 @@ fun PersonalInfoScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(CardBackground)
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                 .padding(24.dp),
             horizontalAlignment = Alignment.Start
         ) {
@@ -136,6 +139,8 @@ fun PersonalInfoScreen(
                     .size(105.dp)
                     .clip(CircleShape)
                     .background(AvatarColor)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), CircleShape)
+
                     .clickable(enabled = isEditing) { photoPickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
@@ -244,6 +249,8 @@ fun PersonalInfoScreen(
                     .align(Alignment.End)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color(0xFFE4E4E6))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+
                     .clickable {
                         if (isEditing) {
                             viewModel.updateProfile(

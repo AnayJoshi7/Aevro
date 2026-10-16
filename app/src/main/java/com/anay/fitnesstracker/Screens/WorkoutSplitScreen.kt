@@ -2,6 +2,7 @@ package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -126,15 +127,18 @@ private fun SplitCard(
     schedule: List<String>
 ) {
     val bgModifier = if (isHighlighted) {
-        Modifier.background(Color(0xFF3DDC84).copy(alpha = 0.25f))
+        Modifier.background(Color(0x803DDC84).copy(alpha = 0.25f))
     } else {
         Modifier.background(CardBackground)
+
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
             .then(bgModifier)
             .padding(20.dp),
         horizontalArrangement = Arrangement.SpaceBetween,

@@ -1,6 +1,7 @@
 package com.anay.fitnesstracker.Screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -128,6 +129,8 @@ fun ProgressScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
                         .background(CardBackground)
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                         .padding(22.dp)
                 ) {
                     Text(
@@ -162,7 +165,9 @@ fun ProgressScreen(
                                         .width(28.dp)
                                         .height(barHeightDp)
                                         .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                                        .background(if (count > 0) PrimaryGreen else BarDefaultBg)
+                                        .background(if (count > 0) Color(0x803ddc84) else BarDefaultBg)
+                                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
@@ -184,6 +189,8 @@ fun ProgressScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
                         .background(CardBackground)
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                         .padding(22.dp)
                 ) {
                     Text(
@@ -232,14 +239,19 @@ fun ProgressScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(12.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(24.dp))
                                 .background(Color(0xFF5E6065))
+
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(calorieProgressFraction)
                                     .fillMaxHeight()
-                                    .background(PrimaryGreen)
+                                    .clip(RoundedCornerShape(24.dp))
+
+                                    .background(Color(0x803ddc84))
+                                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+
                             )
                         }
 
