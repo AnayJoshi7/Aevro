@@ -28,7 +28,7 @@ import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
-private val CardBackground = Color(0xFF000000)
+private val CardBackground = Color(0x1A3ddc84)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF8E8E93)

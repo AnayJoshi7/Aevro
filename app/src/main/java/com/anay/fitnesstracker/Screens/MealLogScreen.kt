@@ -43,7 +43,7 @@ private val BgGradient = Brush.verticalGradient(
         Color(0xFF111214)
     )
 )
-private val CardBackground = Color(0xFF070708)
+private val CardBackground = Color(0x1A3ddc84)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
 

@@ -174,7 +174,7 @@ fun LogWorkoutScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(CardBackground)
+                .background(Color(0x1A3ddc84))
                 .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
                 .padding(20.dp)
@@ -260,7 +260,7 @@ fun LogWorkoutScreen(
                         .heightIn(max = 190.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(DropdownCardBg)
-                        .border(1.dp, Color(0xFF2C2E33), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFF000000), RoundedCornerShape(16.dp))
                         .verticalScroll(rememberScrollState())
                 ) {
                     filteredExercises.forEachIndexed { index, exercise ->
@@ -565,7 +565,7 @@ fun LogWorkoutScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(CardBackground)
+                    .background(Color(0x1A3ddc84))
                     .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
                     .padding(20.dp),
@@ -579,7 +579,7 @@ fun LogWorkoutScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(CardBackground)
+                        .background(Color(0x1A3ddc84))
                         .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
                         .padding(18.dp)
@@ -643,7 +643,7 @@ fun LogWorkoutScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(CardBackground)
+                        .background(Color(0x1A3ddc84))
                         .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
                         .padding(18.dp)

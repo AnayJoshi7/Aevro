@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.Routes
 
-private val NavContainerBg = Color(0xFF0F1012)
+private val NavContainerBg = Color(0xFF000000)
 private val SelectedCardBg = Color(0xFF132A1E)
 private val SelectedBorderColor = Color(0xFF27D07F).copy(alpha = 0.35f)
 private val PrimaryGreen = Color(0xFF27D07F)

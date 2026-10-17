@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
-private val CardBackground = Color(0xFF070708)
+private val CardBackground = Color(0x1A3ddc84)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
 
@@ -73,7 +73,7 @@ fun AboutScreen(
                 .size(76.dp)
                 .clip(CircleShape)
 
-                .background(CardBackground),
+                .background(Color(0xFF000000)),
             contentAlignment = Alignment.Center
         ) {
             Image(

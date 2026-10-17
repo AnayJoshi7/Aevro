@@ -27,8 +27,8 @@ import java.time.ZoneId
 import java.time.temporal.ChronoField
 import java.time.temporal.TemporalAdjusters
 
-private val CardBackground = Color(0xFF070708)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val CardBackground = Color(0x1A3ddc84)
+private val PrimaryGreen = Color(0xFF3ddc84)
 private val TextWhite = Color(0xFFFFFFFF)
 private val BarDefaultBg = Color(0xFF333539)
 

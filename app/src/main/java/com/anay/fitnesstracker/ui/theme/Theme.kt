@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 
 
 
-val CardBackground = Color(0xFF070708)
+val CardBackground = Color(0x1A3ddc84)
 val PrimaryGreen = Color(0xFF3DDC84)
 val gblue = Color(0xFF0673CB)
 val royalblue = Color(0xFF014BAA)
@@ -91,10 +91,10 @@ fun FitnessTrackerTheme(
 fun Modifier.appBackgroundGradient(): Modifier = this.drawBehind {
     val gradientBrush = Brush.linearGradient(
         colorStops = arrayOf(
-            0.00f to Color(0xFF1A1A1A),
-            0.52f to Color(0xFF1A1A1A), // 52% stop from Figma
-            0.92f to Color(0xFF595959), // 92% stop from Figma
-            1.00f to Color(0xFF595959)
+            0.00f to Color(0xFF030906),
+            0.52f to Color(0xFF030906), // 52% stop from Figma
+            0.92f to Color(0xFF1F2622), // 92% stop from Figma
+            1.00f to Color(0xFF1F2622)
         ),
         start = Offset(x = 0f, y = 0f),                         // Top-Left origin
         end = Offset(x = size.width * 0.90f, y = size.height)   // Diagonally toward bottom-right

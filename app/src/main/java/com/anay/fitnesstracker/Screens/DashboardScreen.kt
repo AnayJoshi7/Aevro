@@ -291,7 +291,7 @@ private fun TodayProgressCard(
             .clip(RoundedCornerShape(24.dp))
             .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
-            .background(CardBackground)
+            .background(Color(0x1A3ddc84))
             .padding(vertical = 22.dp, horizontal = 22.dp),
         horizontalAlignment = Alignment.Start
     ) {
@@ -363,7 +363,7 @@ private fun CaloriesCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(CardBackground)
+            .background(Color(0x1A3ddc84))
             .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
             .clickable { onClick() }
@@ -479,7 +479,7 @@ private fun StepsCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(CardBackground)
+            .background(Color(0x1A3ddc84))
             .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
@@ -555,7 +555,7 @@ private fun WorkoutCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(CardBackground)
+            .background(Color(0x1A3ddc84))
             .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
             .clickable { onClick() }

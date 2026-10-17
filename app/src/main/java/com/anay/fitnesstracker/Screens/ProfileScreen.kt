@@ -33,7 +33,7 @@ import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.util.ImageUtils
 
-private val CardBackground = Color(0xFF070708)
+private val CardBackground = Color(0x1A3ddc84)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
 private val AvatarColor = Color(0xFFD4D4D6)
@@ -276,15 +276,15 @@ private fun SettingsButton(label: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .height(48.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(SettingsItemColor)
-            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .background(Color(0xFF000000))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
             .clickable { onClick() }
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        Text(text = label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
 
         Box(
             modifier = Modifier
