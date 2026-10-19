@@ -50,7 +50,7 @@ fun AppBottomNavigationBar(
             .height(72.dp)
             .clip(RoundedCornerShape(26.dp))
             .background(NavContainerBg)
-            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(26.dp))
+            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), RoundedCornerShape(26.dp))
 
             .padding(horizontal = 6.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -97,7 +98,7 @@ fun OnboardingScreen(
                 .height(56.dp)
                 .clip(RoundedCornerShape(28.dp))
                 .background(DarkPillColor)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(28.dp))
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(28.dp))
 
                 .clickable { genderDropdownOpen = true }
                 .padding(horizontal = 24.dp),
@@ -223,7 +224,7 @@ private fun OnboardingPillField(
             .height(56.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(DarkPillColor)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(28.dp))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(28.dp))
 
             .padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart
@@ -247,7 +248,7 @@ private fun OnboardingPillField(
                     onValueChange = onValueChange,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                    textStyle = TextStyle(
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = TextWhite,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium

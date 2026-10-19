@@ -106,21 +106,21 @@ fun WorkoutDetailScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(22.dp))
                             .background(CardBackground)
-                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                             .padding(20.dp)
                     ) {
                         Text(
                             text = section.groupName,
                             color = TextWhite,
-                            fontSize = 18.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Exercises",
                             color = TextWhite,
-                            fontSize = 15.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Normal
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -128,7 +128,7 @@ fun WorkoutDetailScreen(
                             Text(
                                 text = "${index + 1}. $exercise",
                                 color = TextWhite,
-                                fontSize = 14.sp,
+                                fontSize = 18.sp,
                                 lineHeight = 22.sp
                             )
                         }
@@ -141,14 +141,14 @@ fun WorkoutDetailScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
                         .background(CardBackground)
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                         .padding(16.dp)
                 ) {
                     Text(
                         text = guidelineText,
                         color = TextWhite,
-                        fontSize = 12.sp,
+                        fontSize = 16.sp,
                         lineHeight = 18.sp
                     )
                 }

@@ -128,7 +128,7 @@ fun PersonalInfoScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                 .padding(24.dp),
             horizontalAlignment = Alignment.Start
@@ -139,7 +139,7 @@ fun PersonalInfoScreen(
                     .size(105.dp)
                     .clip(CircleShape)
                     .background(AvatarColor)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), CircleShape)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), CircleShape)
 
                     .clickable(enabled = isEditing) { photoPickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
@@ -248,8 +248,8 @@ fun PersonalInfoScreen(
                 modifier = Modifier
                     .align(Alignment.End)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFE4E4E6))
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                    .background(Color(0x90E4E4E6))
+                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), RoundedCornerShape(20.dp))
 
                     .clickable {
                         if (isEditing) {
@@ -302,8 +302,10 @@ private fun EditFieldInput(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color.White)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0x80FFFFFF))
+                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -312,7 +314,7 @@ private fun EditFieldInput(
                 onValueChange = onValueChange,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                textStyle = TextStyle(
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = Color.Black,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold

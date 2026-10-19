@@ -175,7 +175,7 @@ fun LogWorkoutScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color(0x1A3ddc84))
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                 .padding(20.dp)
         ) {
@@ -208,7 +208,7 @@ fun LogWorkoutScreen(
                                 dropdownExpanded = query.isNotBlank()
                             },
                             singleLine = true,
-                            textStyle = TextStyle(
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
                                 color = Color.Black,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium
@@ -380,7 +380,7 @@ fun LogWorkoutScreen(
                                     },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     singleLine = true,
-                                    textStyle = TextStyle(
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                                         color = Color.Black,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
@@ -437,7 +437,7 @@ fun LogWorkoutScreen(
                                 },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
-                                textStyle = TextStyle(
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
                                     color = Color.Black,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
@@ -566,7 +566,7 @@ fun LogWorkoutScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color(0x1A3ddc84))
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(20.dp),
                 contentAlignment = Alignment.Center
@@ -580,7 +580,7 @@ fun LogWorkoutScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color(0x1A3ddc84))
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                         .padding(18.dp)
                 ) {
@@ -644,7 +644,7 @@ fun LogWorkoutScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color(0x1A3ddc84))
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                         .padding(18.dp)
                 ) {

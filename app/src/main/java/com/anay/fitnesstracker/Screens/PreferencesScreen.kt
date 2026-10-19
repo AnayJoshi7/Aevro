@@ -60,7 +60,7 @@ fun PreferencesScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(20.dp)
             ) {
@@ -80,7 +80,7 @@ fun PreferencesScreen(
                             .height(42.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) Color(0x803DDC84).copy(alpha = 0.80f) else Color.White)
-                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(16.dp))
 
                             .clickable { viewModel.updateFrequency(freq) }
                             .padding(horizontal = 16.dp),
@@ -114,7 +114,7 @@ fun PreferencesScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(20.dp)
             ) {
@@ -126,7 +126,7 @@ fun PreferencesScreen(
                             .height(42.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) Color(0x803DDC84).copy(alpha = 0.80f) else Color.White)
-                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(16.dp))
 
                             .clickable {
                                 viewModel.selectExplicitSplit(split)
@@ -153,7 +153,7 @@ fun PreferencesScreen(
                     .height(52.dp)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color(0xFF000000))
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center

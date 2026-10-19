@@ -129,7 +129,7 @@ fun ProgressScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
                         .background(CardBackground)
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                         .padding(22.dp)
                 ) {
@@ -189,7 +189,7 @@ fun ProgressScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
                         .background(CardBackground)
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                         .padding(22.dp)
                 ) {
@@ -240,7 +240,9 @@ fun ProgressScreen(
                                 .weight(1f)
                                 .height(12.dp)
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(Color(0xFF5E6065))
+                                .background(Color(0x805E6065))
+                                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+
 
                         ) {
                             Box(
@@ -250,7 +252,7 @@ fun ProgressScreen(
                                     .clip(RoundedCornerShape(24.dp))
 
                                     .background(Color(0x803ddc84))
-                                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                             )
                         }

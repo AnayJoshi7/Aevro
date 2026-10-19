@@ -112,7 +112,7 @@ fun AddExercisesScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                 .padding(22.dp)
         ) {
@@ -245,7 +245,7 @@ fun AddExercisesScreen(
                                             expandedDropdown = query.isNotBlank()
                                         },
                                         singleLine = true,
-                                        textStyle = TextStyle(
+                                        textStyle = MaterialTheme.typography.bodyLarge.copy(
                                             color = Color.Black,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium

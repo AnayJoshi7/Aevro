@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -134,7 +135,7 @@ fun MealLogScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                 .padding(22.dp)
         ) {
@@ -155,7 +156,7 @@ fun MealLogScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF1E1E20))
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                         .clickable {
                             if (isEditingGoals) {
@@ -234,7 +235,7 @@ fun MealLogScreen(
                             onValueChange = { editCaloriesText = it },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
-                            textStyle = TextStyle(
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
                                 color = Color.Black,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
@@ -295,7 +296,7 @@ fun MealLogScreen(
                             onValueChange = { editProteinText = it },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
-                            textStyle = TextStyle(
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
                                 color = Color.Black,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
@@ -326,7 +327,7 @@ fun MealLogScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                 .padding(20.dp)
         ) {
@@ -351,7 +352,7 @@ fun MealLogScreen(
                     value = mealName,
                     onValueChange = { mealName = it },
                     singleLine = true,
-                    textStyle = TextStyle(
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = Color.Black,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
@@ -384,7 +385,7 @@ fun MealLogScreen(
                     onValueChange = { caloriesText = it },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    textStyle = TextStyle(
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = Color.Black,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
@@ -423,7 +424,7 @@ fun MealLogScreen(
                             onValueChange = { proteinText = it },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            textStyle = TextStyle(
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
                                 color = Color.Black,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium
@@ -479,7 +480,7 @@ fun MealLogScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(20.dp),
                 contentAlignment = Alignment.Center
@@ -494,7 +495,7 @@ fun MealLogScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(24.dp))
                             .background(CardBackground)
-                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                             .padding(18.dp)
                     ) {

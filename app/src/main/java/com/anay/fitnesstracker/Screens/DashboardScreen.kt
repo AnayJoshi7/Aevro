@@ -60,6 +60,9 @@ import com.anay.fitnesstracker.ui.theme.PrimaryGreen
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import java.time.LocalDate
 import java.time.ZoneId
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.TextStyle
 
 private val CardBackground = Color(0xFF070708)
 private val PrimaryGreen = Color(0xFF27D07F)
@@ -192,7 +195,8 @@ fun DashboardScreen(
                     text = "Greetings, ${user?.name?.ifBlank { "Anay" } ?: "Anay"} 👋",
                     color = PrimaryGreen,
                     fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+
                 )
 
                 Spacer(modifier = Modifier.height(36.dp))
@@ -291,8 +295,9 @@ private fun TodayProgressCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+
             .clip(RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
             .background(Color(0x1A3DDC84))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
@@ -333,14 +338,16 @@ private fun TodayProgressCard(
                             .width(130.dp)
                             .height(13.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFF5E6065))
+                            .background(Color(0x805E6065))
+                            .border(1.dp, Color(0xFFffffff).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(fraction)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xFFE4E4E6))
+                                .background(Color(0x80E4E4E6))
                         )
                     }
 
@@ -385,7 +392,7 @@ private fun CaloriesCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0x1A3DDC84))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
             .clickable { onClick() }
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
@@ -446,14 +453,16 @@ private fun CaloriesCard(
                             .width(130.dp)
                             .height(13.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFF5E6065))
+                            .background(Color(0x805E6065))
+                            .border(1.dp, Color(0xFFffffff).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(fraction)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xFFE4E4E6))
+                                .background(Color(0x80E4E4E6))
                         )
                     }
 
@@ -479,20 +488,12 @@ private fun CaloriesCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Right column: Apple icon & Arrow aligned on the exact same vertical center axis
             Column(
                 modifier = Modifier.width(56.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_apple),
-                    contentDescription = "Calories Icon",
-                    modifier = Modifier.size(46.dp),
-                    contentScale = ContentScale.Fit
-                )
 
-                Spacer(modifier = Modifier.height(16.dp))
 
                 Box(
                     modifier = Modifier
@@ -503,9 +504,9 @@ private fun CaloriesCard(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Log Meals",
+                        contentDescription = "Log meals",
                         tint = Color.Black,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -525,7 +526,7 @@ private fun StepsCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0x1A3DDC84))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Row(
@@ -576,14 +577,16 @@ private fun StepsCard(
                             .width(130.dp)
                             .height(13.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFF5E6065))
+                            .background(Color(0xff5E6065))
+                            .border(1.dp, Color(0x80ffffff).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(fraction)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xFFE4E4E6))
+                                .background(Color(0x80E4E4E6))
                         )
                     }
 
@@ -627,7 +630,7 @@ private fun WorkoutCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .background(Color(0x1A3DDC84))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
             .clickable { onClick() }
             .padding(horizontal = 24.dp, vertical = 22.dp),
         verticalAlignment = Alignment.CenterVertically

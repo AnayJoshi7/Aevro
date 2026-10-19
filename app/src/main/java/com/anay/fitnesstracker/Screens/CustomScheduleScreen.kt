@@ -30,6 +30,7 @@ import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import androidx.compose.material3.MaterialTheme
 
 private val BgGradient = Brush.verticalGradient(
     colors = listOf(
@@ -105,7 +106,7 @@ fun CustomScheduleScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(20.dp)
             ) {
@@ -129,12 +130,14 @@ fun CustomScheduleScreen(
                             .weight(1f)
                             .height(44.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
+                            .background(Color(0x80ffffff))
+                            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
                         if (muscleGroup.isEmpty()) {
-                            Text("Muscle group", color = Color.Gray, fontSize = 14.sp)
+                            Text("Muscle group", color = Color.Black, fontSize = 14.sp)
                         }
                         BasicTextField(
                             value = muscleGroup,
@@ -143,7 +146,7 @@ fun CustomScheduleScreen(
                                 viewModel.updateCustomDayMuscleGroup(dayName, it)
                             },
                             singleLine = true,
-                            textStyle = TextStyle(color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Medium),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Medium),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -155,7 +158,9 @@ fun CustomScheduleScreen(
                         modifier = Modifier
                             .height(44.dp)
                             .clip(RoundedCornerShape(22.dp))
-                            .background(PrimaryGreen)
+                            .background(Color(0x803ddc84))
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(22.dp))
+
                             .clickable { onNavigateAddExercises(dayName) }
                             .padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically

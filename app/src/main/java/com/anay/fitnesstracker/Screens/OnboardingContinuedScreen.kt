@@ -64,7 +64,7 @@ fun OnboardingContinuedScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(24.dp)
             ) {
@@ -92,7 +92,7 @@ fun OnboardingContinuedScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(24.dp)
             ) {
@@ -108,7 +108,7 @@ fun OnboardingContinuedScreen(
                             .height(48.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) Color(0x803DDC84).copy(alpha = 0.80f) else Color.White)
-                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(16.dp))
 
                             .clickable {
                                 selectedGoal = goal

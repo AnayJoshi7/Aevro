@@ -105,7 +105,7 @@ fun ProfileScreen(
                         .align(Alignment.CenterEnd)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF241515))
-                        .border(1.dp, Color(0xFFE53935).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFFE53935).copy(alpha = 0.18f), RoundedCornerShape(16.dp))
 
                         .clickable {
                             fitnessViewModel.logout {
@@ -138,7 +138,7 @@ fun ProfileScreen(
                 modifier = Modifier
                     .size(105.dp)
                     .clip(CircleShape)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), CircleShape)
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), CircleShape)
 
                     .background(AvatarColor),
                 contentAlignment = Alignment.Center
@@ -212,7 +212,7 @@ private fun UserInfoCard(user: UserProfile?) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
             .padding(horizontal = 22.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -247,7 +247,7 @@ private fun SettingsCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
             .padding(vertical = 22.dp, horizontal = 20.dp),
         horizontalAlignment = Alignment.Start
@@ -277,7 +277,7 @@ private fun SettingsButton(label: String, onClick: () -> Unit) {
             .height(48.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0xFF000000))
-            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
             .clickable { onClick() }
             .padding(horizontal = 20.dp),

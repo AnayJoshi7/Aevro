@@ -119,7 +119,7 @@ fun SplashScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(horizontal = 18.dp, vertical = 22.dp)
             ) {
@@ -128,15 +128,17 @@ fun SplashScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0x80FFFFFF))
+                        .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     if (username.isEmpty()) {
                         Text(
                             text = "Enter Username",
-                            color = Color(0xFF8A8A8E),
+                            color = Color(0xFF000000),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Normal
                         )
@@ -145,7 +147,7 @@ fun SplashScreen(
                         value = username,
                         onValueChange = { username = it },
                         singleLine = true,
-                        textStyle = TextStyle(
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = Color.Black,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium
@@ -195,10 +197,13 @@ fun SplashScreen(
                             }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x803ddc84)),
+
+                    shape = RoundedCornerShape(20.dp),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+
                         .height(50.dp),
                     enabled = !isLoading
                 ) {
@@ -241,7 +246,7 @@ fun SplashScreen(
                     .height(56.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(20.dp))
 
                     .clickable { onNavigateSignUp() },
                 contentAlignment = Alignment.Center

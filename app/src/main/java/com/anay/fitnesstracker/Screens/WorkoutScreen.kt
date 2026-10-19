@@ -282,7 +282,7 @@ fun WorkoutDayClickableCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
             .clickable { onClick() }
             .padding(horizontal = 22.dp, vertical = 20.dp),
@@ -342,7 +342,7 @@ private fun ActionPillButton(
             .height(54.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24 .dp))
+            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24 .dp))
 
             .clickable { onClick() }
             .padding(horizontal = 22.dp),
