@@ -6,7 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,20 +43,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.data.StepSensorManager
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.PrimaryGreen
-import androidx.compose.foundation.border
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
-import com.anay.fitnesstracker.ui.theme.gblue
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -196,7 +199,7 @@ fun DashboardScreen(
 
                 Text(
                     text = "Today’s Progress",
-                    color = PrimaryGreen ,
+                    color = PrimaryGreen,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -285,69 +288,87 @@ private fun TodayProgressCard(
     fraction: Float,
     percent: Int
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
-
-            .background(Color(0x1A3ddc84))
-            .padding(vertical = 22.dp, horizontal = 22.dp),
-        horizontalAlignment = Alignment.Start
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .background(Color(0x1A3DDC84))
+            .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
-        Text(
-            text = "Workouts Completed",
-            color = TextWhite,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "$completed/$target",
-            color = TextWhite,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-
-
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .width(130.dp)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFF5E6065))
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFFE4E4E6))
+                Text(
+                    text = "Workouts Completed",
+                    color = TextWhite,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "$completed/$target",
+                    color = TextWhite,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 36.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(130.dp)
+                            .height(13.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color(0xFF5E6065))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color(0xFFE4E4E6))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Text(
+                        text = "$percent%",
+                        color = TextWhite,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(18.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = "$percent%",
-                color = TextWhite,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            Box(
+                modifier = Modifier.size(56.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_barbell),
+                    contentDescription = "Workouts",
+                    modifier = Modifier.size(52.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-
     }
 }
 
@@ -359,110 +380,134 @@ private fun CaloriesCard(
     percent: Int,
     onClick: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0x1A3ddc84))
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
-
+            .background(Color(0x1A3DDC84))
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
             .clickable { onClick() }
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
-        Text(
-            text = "Calories",
-            color = TextWhite,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
         Row(
-            verticalAlignment = Alignment.Bottom
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "$consumed ",
-                color = TextWhite,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "/$target",
-                color = TextWhite,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 3.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "Kcal",
-                color = TextMuted,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(130.dp)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFF5E6065))
+            // Left content column
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFFE4E4E6))
+                Text(
+                    text = "Calories",
+                    color = TextWhite,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "$consumed ",
+                        color = TextWhite,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 36.sp
+                    )
+                    Text(
+                        text = "/$target",
+                        color = TextWhite,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Kcal",
+                        color = TextMuted,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier.padding(bottom = 3.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(130.dp)
+                            .height(13.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color(0xFF5E6065))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color(0xFFE4E4E6))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Text(
+                        text = "$percent%",
+                        color = TextWhite,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Click to log your meals",
+                    color = TextMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal
                 )
             }
 
-            Spacer(modifier = Modifier.width(18.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = "$percent%",
-                color = TextWhite,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Click to log your meals",
-                color = TextMuted,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Normal
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(TextWhite),
-                contentAlignment = Alignment.Center
+            // Right column: Apple icon & Arrow aligned on the exact same vertical center axis
+            Column(
+                modifier = Modifier.width(56.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Log Meals",
-                    tint = Color.Black,
-                    modifier = Modifier.size(14.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.ic_apple),
+                    contentDescription = "Calories Icon",
+                    modifier = Modifier.size(46.dp),
+                    contentScale = ContentScale.Fit
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(TextWhite),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Log Meals",
+                        tint = Color.Black,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }
@@ -475,71 +520,97 @@ private fun StepsCard(
     fraction: Float,
     percent: Int
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0x1A3ddc84))
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .background(Color(0x1A3DDC84))
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
-        Text(
-            text = "Steps",
-            color = TextWhite,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
         Row(
-            verticalAlignment = Alignment.Bottom
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "$steps ",
-                color = TextWhite,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "/$target",
-                color = TextWhite,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 3.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(130.dp)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFF5E6065))
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFFE4E4E6))
+                Text(
+                    text = "Steps",
+                    color = TextWhite,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "$steps ",
+                        color = TextWhite,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 36.sp
+                    )
+                    Text(
+                        text = "/$target",
+                        color = TextWhite,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(130.dp)
+                            .height(13.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color(0xFF5E6065))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color(0xFFE4E4E6))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Text(
+                        text = "$percent%",
+                        color = TextWhite,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(18.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = "$percent%",
-                color = TextWhite,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            Box(
+                modifier = Modifier.size(56.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_sneakers),
+                    contentDescription = "Steps Sneakers",
+                    modifier = Modifier.size(52.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
     }
 }
@@ -555,9 +626,8 @@ private fun WorkoutCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(Color(0x1A3ddc84))
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
-
+            .background(Color(0x1A3DDC84))
+            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
             .clickable { onClick() }
             .padding(horizontal = 24.dp, vertical = 22.dp),
         verticalAlignment = Alignment.CenterVertically

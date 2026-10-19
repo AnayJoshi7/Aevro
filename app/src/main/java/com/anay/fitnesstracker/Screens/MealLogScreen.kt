@@ -195,6 +195,8 @@ fun MealLogScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
 
+
+
             if (!isEditingGoals) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(

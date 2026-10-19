@@ -277,7 +277,7 @@ private fun SettingsButton(label: String, onClick: () -> Unit) {
             .height(48.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(Color(0xFF000000))
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(24.dp))
 
             .clickable { onClick() }
             .padding(horizontal = 20.dp),
