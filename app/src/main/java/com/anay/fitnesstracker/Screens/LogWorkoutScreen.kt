@@ -189,7 +189,8 @@ fun LogWorkoutScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
+                    .background(Color(0x80ffffff))
+                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -260,7 +261,7 @@ fun LogWorkoutScreen(
                         .heightIn(max = 190.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(DropdownCardBg)
-                        .border(1.dp, Color(0xFF000000), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFFFFFFFF), RoundedCornerShape(16.dp))
                         .verticalScroll(rememberScrollState())
                 ) {
                     filteredExercises.forEachIndexed { index, exercise ->
@@ -322,8 +323,9 @@ fun LogWorkoutScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color.White),
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0x80ffffff))
+                                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))    ,
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -361,8 +363,9 @@ fun LogWorkoutScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color.White)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0x80ffffff))
+                                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                                 .padding(horizontal = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -423,8 +426,9 @@ fun LogWorkoutScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color.White)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0x80ffffff))
+                                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                                 .padding(horizontal = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {

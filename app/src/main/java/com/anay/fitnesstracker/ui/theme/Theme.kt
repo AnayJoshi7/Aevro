@@ -88,7 +88,7 @@ fun FitnessTrackerTheme(
         // This ensures BasicTextField and any unstyled text automatically use SF Pro Rounded!
         CompositionLocalProvider(
             LocalTextStyle provides TextStyle(
-                fontFamily = SfProDisplay
+                fontFamily = OneplusSlate
             )
         ) {
             content()

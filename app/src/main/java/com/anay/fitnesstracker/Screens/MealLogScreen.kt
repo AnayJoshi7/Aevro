@@ -343,9 +343,9 @@ fun MealLogScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(44.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 16.dp),
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0x80ffffff))
+                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 BasicTextField(
@@ -375,8 +375,9 @@ fun MealLogScreen(
                 modifier = Modifier
                     .width(170.dp)
                     .height(44.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0x80ffffff))
+                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -414,8 +415,9 @@ fun MealLogScreen(
                         modifier = Modifier
                             .width(170.dp)
                             .height(44.dp)
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(Color.White)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0x80ffffff))
+                            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {

@@ -197,7 +197,7 @@ fun DashboardScreen(
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
 
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(36.dp))
 
@@ -212,7 +212,7 @@ fun DashboardScreen(
 
                 TodayProgressCard(
                     completed = completedExercisesToday,
-                    target = targetExercisesToday,
+                    target = todayWorkout.exerciseCountText.filter { it.isDigit() }.toIntOrNull() ?: 5,
                     fraction = workoutProgressFraction,
                     percent = workoutProgressPercent
                 )
@@ -250,7 +250,6 @@ fun DashboardScreen(
 
                 WorkoutCard(
                     title = todayWorkout.title,
-                    muscles = todayWorkout.muscleGroups,
                     exerciseCount = todayWorkout.exerciseCountText,
                     onClick = {
                         todayWorkout.route?.let { onNavigate(it) }
@@ -313,14 +312,14 @@ private fun TodayProgressCard(
                 Text(
                     text = "Workouts Completed",
                     color = TextWhite,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Medium
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "$completed/$target",
+                    text = "$completed / $target",
                     color = TextWhite,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
@@ -409,8 +408,8 @@ private fun CaloriesCard(
                 Text(
                     text = "Calories",
                     color = TextWhite,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Medium
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -419,27 +418,14 @@ private fun CaloriesCard(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     Text(
-                        text = "$consumed ",
+                        text = "$consumed / $target ",
                         color = TextWhite,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 36.sp
                     )
-                    Text(
-                        text = "/$target",
-                        color = TextWhite,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Kcal",
-                        color = TextMuted,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal,
-                        modifier = Modifier.padding(bottom = 3.dp)
-                    )
+
+
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -479,7 +465,7 @@ private fun CaloriesCard(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "Click to log your meals",
+                    text = "Click on the card to log your meals",
                     color = TextMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal
@@ -541,8 +527,8 @@ private fun StepsCard(
                 Text(
                     text = "Steps",
                     color = TextWhite,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Medium
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -551,19 +537,13 @@ private fun StepsCard(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     Text(
-                        text = "$steps ",
+                        text = "$steps / $target ",
                         color = TextWhite,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 36.sp
                     )
-                    Text(
-                        text = "/$target",
-                        color = TextWhite,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
+
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -621,7 +601,6 @@ private fun StepsCard(
 @Composable
 private fun WorkoutCard(
     title: String,
-    muscles: String,
     exerciseCount: String,
     onClick: () -> Unit
 ) {
@@ -639,18 +618,18 @@ private fun WorkoutCard(
             Text(
                 text = title,
                 color = TextWhite,
-                fontSize = 18.sp,
+                fontSize = 19.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = muscles,
+                text = exerciseCount,
                 color = TextWhite,
-                fontSize = 14.sp
+                fontSize = 14.sp,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = exerciseCount,
+                text = "Click on the card to start a workout",
                 color = TextMuted,
                 fontSize = 12.sp
             )
