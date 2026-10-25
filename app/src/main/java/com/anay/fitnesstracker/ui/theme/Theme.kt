@@ -15,6 +15,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.draw.drawBehind
 import android.graphics.BlurMaskFilter
+import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Paint
@@ -23,12 +24,21 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.nativeCanvas
-
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.innerShadow
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 
 
 val CardBackground = Color(0x1A3ddc84)
@@ -95,6 +105,50 @@ fun FitnessTrackerTheme(
         }
     }
 }
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val green = Color(0xFF3DDC84)
+    val shape = RoundedCornerShape(20.dp)
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(green.copy(alpha = 0.10f))
+            .innerShadow(
+                shape = shape,
+                shadow = Shadow(
+                    radius = 4.dp,
+                    color = green.copy(alpha = 0.40f),
+                    offset = DpOffset(0.dp, 2.dp),
+                    spread = 0.dp
+                )
+            )
+            .innerShadow(
+                shape = shape,
+                shadow = Shadow(
+                    radius = 4.dp,
+                    color = Color.White.copy(alpha = 0.20f),
+                    offset = DpOffset(0.dp, (-2).dp),
+                    spread = 0.dp
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    0f to green.copy(alpha = 0.05f),
+                    0.5f to green,
+                    1f to green.copy(alpha = 0.05f)
+                ),
+                shape = shape
+            )
+            .padding(20.dp),
+        content = content
+    )
+}
+
 fun Modifier.appBackgroundGradient(): Modifier = this.drawBehind {
     val gradientBrush = Brush.linearGradient(
         colorStops = arrayOf(
@@ -108,6 +162,22 @@ fun Modifier.appBackgroundGradient(): Modifier = this.drawBehind {
     )
     drawRect(brush = gradientBrush)
 }
+fun Modifier.borderGradient(
+    width: Dp = 1.5.dp,
+    shape: Shape = RectangleShape
+): Modifier = this.border(
+    width = width,
+    brush = Brush.linearGradient(
+        colorStops = arrayOf(
+            0.00f to Color(0xFF3DDC84).copy(alpha = 0.05f),
+            0.50f to Color(0xFF3DDC84).copy(alpha = 1.00f),
+            1.00f to Color(0xFF3DDC84).copy(alpha = 0.05f)
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY) // or adjust direction
+    ),
+    shape = shape
+)
 fun Modifier.figmaDropShadow(
     color: Color = Color(0xFF3DDC84).copy(alpha = 0.15f), // Color: 3DDC84 15%
     blurRadius: Dp = 40.dp,                               // Blur: 40

@@ -18,6 +18,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.anay.fitnesstracker.Screens.*
+import com.anay.fitnesstracker.data.*
+
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.Screens.PersonalInfoScreen
 import com.anay.fitnesstracker.Screens.NotificationScreen
@@ -36,6 +38,7 @@ object Routes {
     const val PROGRESS = "progress"
     const val PROFILE = "profile"
     const val MEAL_LOG = "meal_log"
+    const val ADD_MEAL = "add_meal"
 
     const val PERSONAL_INFO = "personal_info"
     const val NOTIFICATIONS = "notifications"
@@ -109,6 +112,20 @@ fun FitnessAppNavHost(
             PersonalInfoScreen(
                 viewModel = fitnessViewModel,
                 onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Routes.MEAL_LOG) {
+            MealLogScreen(
+                fitnessViewModel = fitnessViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateAddMeal = { navController.navigate(Routes.ADD_MEAL) }
+            )
+        }
+
+        composable(Routes.ADD_MEAL) {
+            AddMealScreen(
+                fitnessViewModel = fitnessViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -262,8 +279,16 @@ fun FitnessAppNavHost(
 
         composable(Routes.MEAL_LOG) {
             MealLogScreen(
-                viewModel = fitnessViewModel,
-                onBack = { navController.popBackStack() }
+                fitnessViewModel = fitnessViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateAddMeal = { navController.navigate(Routes.ADD_MEAL) }
+            )
+        }
+
+        composable(Routes.ADD_MEAL) {
+            AddMealScreen(
+                fitnessViewModel = fitnessViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

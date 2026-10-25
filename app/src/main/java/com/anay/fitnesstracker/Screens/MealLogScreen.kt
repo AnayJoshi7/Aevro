@@ -1,5 +1,6 @@
 package com.anay.fitnesstracker.Screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,26 +9,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -35,515 +30,423 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import java.time.LocalDate
+import java.time.ZoneId
 
-private val BgGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF1B1C1E),
-        Color(0xFF131416),
-        Color(0xFF2C2E31),
-        Color(0xFF111214)
-    )
-)
-private val CardBackground = Color(0x1A3ddc84)
+private val CardDarkBg = Color(0x1A3DDC84)
+private val CardBorderColor = Color(0xFF3DDC84).copy(alpha = 0.20f)
 private val PrimaryGreen = Color(0xFF27D07F)
 private val TextWhite = Color(0xFFFFFFFF)
+private val TextMuted = Color(0xFF9E9E9E)
 
 @Composable
 fun MealLogScreen(
-    viewModel: FitnessViewModel,
-    onBack: () -> Unit
+    fitnessViewModel: FitnessViewModel,
+    onNavigateBack: () -> Unit,
+    onNavigateAddMeal: () -> Unit
 ) {
-    val user by viewModel.currentUser.collectAsState()
+    val context = LocalContext.current
+    val user by fitnessViewModel.currentUser.collectAsState()
+    val allMeals = user?.meals ?: emptyList()
 
-    // 1. Midnight boundary for daily reset
-    val startOfToday = remember {
-        java.time.LocalDate.now()
-            .atStartOfDay(java.time.ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
+    val startOfTodayMillis = remember {
+        LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    }
+    val todayMeals = remember(allMeals, startOfTodayMillis) {
+        allMeals.filter { it.timestamp >= startOfTodayMillis }
     }
 
-    // Only meals added today
-    val todayMeals = remember(user?.meals, startOfToday) {
-        user?.meals?.filter { it.timestamp >= startOfToday } ?: emptyList()
+    val dailyCaloriesGoal = user?.dailyCalorieGoal ?: 2200
+    val totalCaloriesConsumed = todayMeals.sumOf { it.calories }
+    val totalProtein = todayMeals.sumOf { it.protein }
+    val totalCarbs = todayMeals.sumOf { it.carbs }
+    val totalFat = todayMeals.sumOf { it.fat }
+
+    // Macro Targets (derived from daily Calorie Goal)
+    val targetCarbs = (dailyCaloriesGoal * 0.50 / 4).toInt()
+    val targetProtein = (dailyCaloriesGoal * 0.25 / 4).toInt()
+    val targetFats = (dailyCaloriesGoal * 0.25 / 9).toInt()
+
+    // Edit Goal Dialog State
+    var showEditGoalDialog by remember { mutableStateOf(false) }
+    var newGoalText by remember { mutableStateOf(dailyCaloriesGoal.toString()) }
+
+    if (showEditGoalDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditGoalDialog = false },
+            containerColor = Color(0xFF161719),
+            title = {
+                Text(
+                    text = "Edit Daily Calorie Goal",
+                    color = TextWhite,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Enter your target calories per day:",
+                        color = TextMuted,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = newGoalText,
+                        onValueChange = { newGoalText = it.filter { char -> char.isDigit() } },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryGreen,
+                            unfocusedBorderColor = Color.DarkGray,
+                            focusedTextColor = TextWhite,
+                            unfocusedTextColor = TextWhite
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val parsed = newGoalText.toIntOrNull()
+                        if (parsed != null && parsed > 0) {
+                            fitnessViewModel.updateDailyCalorieGoal(parsed)
+                            showEditGoalDialog = false
+                            Toast.makeText(context, "Goal updated!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Enter a valid target", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("Save", color = PrimaryGreen, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditGoalDialog = false }) {
+                    Text("Cancel", color = TextMuted)
+                }
+            }
+        )
     }
 
-    val totalCaloriesToday = todayMeals.sumOf { it.calories }
-    val totalProteinToday = todayMeals.sumOf { it.protein }
-    val targetCalories = user?.dailyCalorieGoal ?: 2200
-    val targetProtein = user?.dailyProteinGoal ?: 120
-
-    // Goal Editing State
-    var isEditingGoals by remember { mutableStateOf(false) }
-    var editCaloriesText by remember(targetCalories) { mutableStateOf("$targetCalories") }
-    var editProteinText by remember(targetProtein) { mutableStateOf("$targetProtein") }
-
-    // Meal Input State
-    var mealName by remember { mutableStateOf("") }
-    var caloriesText by remember { mutableStateOf("") }
-    var proteinText by remember { mutableStateOf("") }
-
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .appBackgroundGradient()
-
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState())
     ) {
-        // Back Header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
             modifier = Modifier
-                .clickable { onBack() }
-                .padding(vertical = 12.dp)
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_back),
-                contentDescription = null,
-                modifier = Modifier.size(38.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Back button
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { onNavigateBack() }
+                    .padding(vertical = 12.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_back),
+                    contentDescription = null,
+                    modifier = Modifier.size(38.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Back", color = PrimaryGreen, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
-                text = "Back",
+                text = "Track Your Food",
                 color = PrimaryGreen,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Title
-        Text(
-            text = "Track Your Food",
-            color = PrimaryGreen,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Card 1: Current Stats with Edit Button
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                .padding(22.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Current Stats",
-                    color = TextWhite,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Edit / Save Goals Toggle Pill
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF1E1E20))
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                        .clickable {
-                            if (isEditingGoals) {
-                                val newCal = editCaloriesText.toIntOrNull() ?: targetCalories
-                                val newPro = editProteinText.toIntOrNull() ?: targetProtein
-                                viewModel.updateNutritionGoals(newCal, newPro)
-                            }
-                            isEditingGoals = !isEditingGoals
-                        }
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Goals",
-                        tint = PrimaryGreen,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (isEditingGoals) "Save" else "Edit",
-                        color = PrimaryGreen,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Calories Consumed Row
-            Text(
-                text = "Calories Consumed",
-                color = TextWhite,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-
-
-
-            if (!isEditingGoals) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = "$totalCaloriesToday / $targetCalories",
-                        color = TextWhite,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Kcals",
-                        color = Color.LightGray,
-                        fontSize = 13. sp
-                    )
-                }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$totalCaloriesToday / ",
-                        color = TextWhite,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(90.dp)
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White)
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        BasicTextField(
-                            value = editCaloriesText,
-                            onValueChange = { editCaloriesText = it },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = Color.Black,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Kcals", color = Color.LightGray, fontSize = 13.sp)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Protein Consumed Row
-            Text(
-                text = "Protein",
-                color = TextWhite,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-
-            if (!isEditingGoals) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = "$totalProteinToday / $targetProtein",
-                        color = TextWhite,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "grams",
-                        color = Color.LightGray,
-                        fontSize = 13.sp
-                    )
-                }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$totalProteinToday / ",
-                        color = TextWhite,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(80.dp)
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White)
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        BasicTextField(
-                            value = editProteinText,
-                            onValueChange = { editProteinText = it },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = Color.Black,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "grams", color = Color.LightGray, fontSize = 13.sp)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Add Meal",
-            color = PrimaryGreen,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Card 2: Add Meal Input Form
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                .padding(20.dp)
-        ) {
-            // Meal Name
-            Text(
-                text = "Name of the meal",
-                color = TextWhite,
-                fontSize = 15.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Box(
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Column(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0x80ffffff))
-                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
+                    .verticalScroll(rememberScrollState())
             ) {
-                BasicTextField(
-                    value = mealName,
-                    onValueChange = { mealName = it },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = Color.Black,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Calories
-            Text(
-                text = "Calories",
-                color = TextWhite,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .width(170.dp)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0x80ffffff))
-                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                BasicTextField(
-                    value = caloriesText,
-                    onValueChange = { caloriesText = it },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = Color.Black,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Protein & Green Round "+" Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column {
-                    Text(
-                        text = "Protein",
-                        color = TextWhite,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(170.dp)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0x80ffffff))
-                            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        BasicTextField(
-                            value = proteinText,
-                            onValueChange = { proteinText = it },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = Color.Black,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                // Green Round "+" Button
+                // Current Stats Card with Edit Goal Button
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryGreen)
-                        .clickable {
-                            val cal = caloriesText.toIntOrNull() ?: 0
-                            val pro = proteinText.toIntOrNull() ?: 0
-                            if (mealName.isNotBlank() && cal > 0) {
-                                viewModel.addMeal(mealName.trim(), cal, pro)
-                                mealName = ""
-                                caloriesText = ""
-                                proteinText = ""
-                            }
-                        },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .border(1.dp, CardBorderColor, RoundedCornerShape(22.dp))
+                        .background(CardDarkBg)
+                        .padding(22.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Meal",
-                        tint = Color.Black,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Card 3: Previous Meals (Today's Logged Meals)
-        Text(
-            text = "Previous Meals",
-            color = PrimaryGreen,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (todayMeals.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No meals logged yet today.", color = Color.Gray, fontSize = 14.sp)
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                todayMeals.forEach { meal ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(CardBackground)
-                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                            .padding(18.dp)
-                    ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = meal.name,
+                                text = "Current Stats",
                                 color = TextWhite,
-                                fontSize = 17.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
+
                             IconButton(
-                                onClick = { viewModel.deleteMeal(meal.id) },
+                                onClick = {
+                                    newGoalText = dailyCaloriesGoal.toString()
+                                    showEditGoalDialog = true
+                                },
                                 modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete Meal",
-                                    tint = Color(0xFFE53935)
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Goal",
+                                    tint = PrimaryGreen,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
+                        Text("Calories Consumed", color = TextMuted, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "$totalCaloriesConsumed",
+                                color = TextWhite,
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "/ $dailyCaloriesGoal kcals",
+                                color = TextMuted,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 3.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Text("Carbs", color = TextMuted, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "${totalCarbs.toInt()}",
+                                color = TextWhite,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "/ $targetCarbs g",
+                                color = TextMuted,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 3.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Text("Protein", color = TextMuted, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "${totalProtein.toInt()}",
+                                color = TextWhite,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "/ $targetProtein g",
+                                color = TextMuted,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 3.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Text("Fats", color = TextMuted, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "${totalFat.toInt()}",
+                                color = TextWhite,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "/ $targetFats g",
+                                color = TextMuted,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 3.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(26.dp))
+
+                Text(
+                    text = "Today’s Meals",
+                    color = PrimaryGreen,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (todayMeals.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(22.dp))
+                            .border(1.dp, CardBorderColor, RoundedCornerShape(22.dp))
+                            .background(CardDarkBg)
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "Calories - ${meal.calories} Kcals",
-                            color = TextWhite,
-                            fontSize = 14.sp
+                            text = "No meals logged today yet.",
+                            color = TextMuted,
+                            fontSize = 15.sp
                         )
+                    }
+                } else {
+                    todayMeals.forEach { meal ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(22.dp))
+                                .border(1.dp, CardBorderColor, RoundedCornerShape(22.dp))
+                                .background(CardDarkBg)
+                                .padding(20.dp)
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = meal.name,
+                                        color = TextWhite,
+                                        fontSize = 19.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                                    IconButton(
+                                        onClick = {
+                                            fitnessViewModel.deleteMeal(meal.id)
+                                            Toast.makeText(context, "Meal removed", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete Meal",
+                                            tint = Color(0xFFE53935),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
 
-                        Text(
-                            text = "Protein - ${meal.protein} grams",
-                            color = TextWhite,
-                            fontSize = 14.sp
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Calories", color = TextMuted, fontSize = 14.sp)
+                                    Text("${meal.calories} Kcals", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Protein", color = TextMuted, fontSize = 14.sp)
+                                    Text("${meal.protein.toInt()} g", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Carbs", color = TextMuted, fontSize = 14.sp)
+                                    Text("${meal.carbs.toInt()} g", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Fats", color = TextMuted, fontSize = 14.sp)
+                                    Text("${meal.fat.toInt()} g", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Bottom Add a meal Pill Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .border(1.dp, CardBorderColor, RoundedCornerShape(28.dp))
+                    .background(Color(0xFF14241C))
+                    .clickable { onNavigateAddMeal() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Add a meal",
+                        color = TextWhite,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add",
+                            tint = Color.Black,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(28.dp))
     }
 }

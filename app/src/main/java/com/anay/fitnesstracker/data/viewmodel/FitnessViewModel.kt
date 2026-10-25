@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.anay.fitnesstracker.data.*
+
 import com.anay.fitnesstracker.data.repository.ExerciseRepository
 import com.anay.fitnesstracker.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestore
@@ -42,8 +43,80 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
 
     private var userSnapshotListener: ListenerRegistration? = null
 
+
     init {
         checkSavedSession()
+    }
+    // In FitnessViewModel.kt
+    private val _foodsList = MutableStateFlow<List<FoodItem>>(emptyList())
+    val foodsList: StateFlow<List<FoodItem>> = _foodsList.asStateFlow()
+
+    init {
+        loadFoodsCollection()
+    }
+
+    fun loadFoodsCollection() {
+        db.collection("foods").get()
+            .addOnSuccessListener { snapshot ->
+                val items = snapshot.documents.mapNotNull { doc ->
+                    val id = doc.getString("id") ?: doc.id
+                    val name = doc.getString("name") ?: return@mapNotNull null
+                    val servingBasis = doc.getString("servingBasis") ?: "100 g"
+                    val calories = (doc.get("calories") as? Number)?.toDouble() ?: 0.0
+                    val protein = (doc.get("protein") as? Number)?.toDouble() ?: 0.0
+                    val carbohydrates = (doc.get("carbohydrates") as? Number)?.toDouble() ?: 0.0
+                    val fat = (doc.get("fat") as? Number)?.toDouble() ?: 0.0
+                    FoodItem(id, name, servingBasis, calories, protein, carbohydrates, fat)
+                }
+                _foodsList.value = items.sortedBy { it.name }
+            }
+    }
+    fun deleteMeal(mealId: String) {
+        val user = _currentUser.value ?: return
+        val updatedMeals = user.meals.filterNot { it.id == mealId }
+        val updatedUser = user.copy(meals = updatedMeals)
+        _currentUser.value = updatedUser
+
+        db.collection("users").document(user.username)
+            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
+    }
+
+    fun updateDailyCalorieGoal(newGoal: Int) {
+        val user = _currentUser.value ?: return
+        val updatedUser = user.copy(dailyCalorieGoal = newGoal)
+        _currentUser.value = updatedUser
+
+        db.collection("users").document(user.username)
+            .set(mapOf("dailyCalorieGoal" to newGoal), SetOptions.merge())
+    }
+
+    fun saveCompleteMeal(
+        mealName: String,
+        totalCalories: Int,
+        totalProtein: Double,
+        totalCarbs: Double,
+        totalFat: Double,
+        items: List<MealItemEntry>,
+        onComplete: () -> Unit
+    ) {
+        val user = _currentUser.value ?: return
+        val newMeal = Meal(
+            id = UUID.randomUUID().toString(),
+            name = mealName.ifBlank { "Meal" },
+            calories = totalCalories,
+            protein = totalProtein,
+            carbs = totalCarbs,
+            fat = totalFat,
+            timestamp = System.currentTimeMillis(),
+            items = items
+        )
+        val updatedMeals = user.meals + newMeal
+        val updatedUser = user.copy(meals = updatedMeals)
+        _currentUser.value = updatedUser
+
+        db.collection("users").document(user.username)
+            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
+            .addOnSuccessListener { onComplete() }
     }
 
     private fun checkSavedSession() {
@@ -115,16 +188,7 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     }
 
     // 1. Delete a Meal
-    fun deleteMeal(mealId: String) {
-        val user = _currentUser.value ?: return
-        val updatedMeals = user.meals.filter { it.id != mealId }
-        val updatedUser = user.copy(meals = updatedMeals)
-        _currentUser.value = updatedUser
 
-        // Writes to local disk cache immediately without crashing on network error
-        db.collection("users").document(user.username)
-            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
-    }
 
     // 2. Log Exercise (Safe against offline / UnknownHostException)
     fun logExercise(exerciseName: String, category: String = "", sets: List<WorkoutSet>) {
@@ -441,27 +505,44 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun addMeal(name: String, calories: Int, protein: Int) {
+    fun addMeal(
+        name: String,
+        calories: Int,
+        protein: Double = 0.0,
+        carbs: Double = 0.0,
+        fat: Double = 0.0,
+        items: List<MealItemEntry> = emptyList(),
+        onComplete: (() -> Unit)? = null
+    ) {
         val user = _currentUser.value ?: return
-        val newMeal = MealItem(
+
+        val newMeal = Meal(
             id = UUID.randomUUID().toString(),
-            name = name,
+            name = name.ifBlank { "Meal" },
             calories = calories,
             protein = protein,
-            timestamp = System.currentTimeMillis()
+            carbs = carbs,
+            fat = fat,
+            timestamp = System.currentTimeMillis(),
+            items = items
         )
-        val updatedMeals = listOf(newMeal) + user.meals
+
+        val updatedMeals = user.meals + newMeal
 
         val mealNotif = NotificationItem(
             id = UUID.randomUUID().toString(),
-            message = "You logged a meal: $name ($calories kcal)",
+            message = "You logged a meal: ${newMeal.name} (${newMeal.calories} kcal)",
             timestamp = System.currentTimeMillis()
         )
         val updatedNotifs = listOf(mealNotif) + user.notifications
 
-        val updatedUser = user.copy(meals = updatedMeals, notifications = updatedNotifs)
+        val updatedUser = user.copy(
+            meals = updatedMeals,
+            notifications = updatedNotifs
+        )
         _currentUser.value = updatedUser
 
+        // Persist to Firestore
         db.collection("users").document(user.username)
             .set(
                 mapOf(
@@ -470,5 +551,9 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
                 ),
                 SetOptions.merge()
             )
+            .addOnSuccessListener {
+                onComplete?.invoke()
+            }
     }
+
 }

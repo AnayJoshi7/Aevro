@@ -111,26 +111,6 @@ fun AboutScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Version & Stack Card
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
-                .background(CardBackground)
-                .padding(22.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = "Version 1.0.0", color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = "Built with Kotlin • Jetpack\nCompose • Firebase • REST APIs",
-                color = TextWhite,
-                fontSize = 14.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                lineHeight = 20.sp
-            )
-        }
     }
 }

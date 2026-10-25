@@ -79,7 +79,8 @@ fun ConfirmationScreen(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-
+            val targetFats = (tempUser.dailyCalorieGoal * 0.25 / 9).toInt()
+            val targetCarbs = (tempUser.dailyCalorieGoal * 0.50 / 4).toInt()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -90,8 +91,12 @@ fun ConfirmationScreen(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+
                 GoalItem(title = "Daily Calories-Intake Goal", value = "${tempUser.dailyCalorieGoal} Kcals")
                 GoalItem(title = "Daily Protein Goal", value = "${tempUser.dailyProteinGoal} Grams")
+                GoalItem(title = "Daily Carbs Goal", value = "${targetCarbs} Grams")
+                GoalItem(title = "Daily Fats Goal", value = "${targetFats} Grams")
+
                 GoalItem(title = "Daily Steps Goal", value = "${tempUser.dailyStepGoal} Steps")
                 GoalItem(title = "Weekly Workout Split", value = "${tempUser.workoutSplit} (${tempUser.workoutFrequency})")
             }
