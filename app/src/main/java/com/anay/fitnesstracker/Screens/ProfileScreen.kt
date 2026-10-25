@@ -31,7 +31,12 @@ import com.anay.fitnesstracker.data.UserProfile
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import com.anay.fitnesstracker.ui.theme.glassEffect
 import com.anay.fitnesstracker.util.ImageUtils
+import com.anay.fitnesstracker.ui.theme.glassEffect
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 private val CardBackground = Color(0x1A3ddc84)
 private val PrimaryGreen = Color(0xFF27D07F)
@@ -46,6 +51,7 @@ fun ProfileScreen(
     fitnessViewModel: FitnessViewModel,
     onLogout: () -> Unit
 ) {
+    val hazeState = rememberHazeState()
     val user by fitnessViewModel.currentUser.collectAsState()
     val avatarBitmap = remember(user?.avatarBase64) {
         ImageUtils.base64ToBitmap(user?.avatarBase64)
@@ -61,10 +67,13 @@ fun ProfileScreen(
     )
 
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .hazeSource(state = hazeState)
             .appBackgroundGradient()
+
 
             .statusBarsPadding()
             .navigationBarsPadding(),
@@ -164,15 +173,22 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            UserInfoCard(user = user)
+            UserInfoCard(
+                user = user,
+                hazeState = hazeState,
+
+
+                )
 
             Spacer(modifier = Modifier.height(26.dp))
 
             SettingsCard(
                 onPersonalInfoClick = { onNavigate(Routes.PERSONAL_INFO) },
                 onNotificationsClick = { onNavigate(Routes.NOTIFICATIONS) },
-                onAboutClick = { onNavigate(Routes.ABOUT) }
-            )
+                onAboutClick = { onNavigate(Routes.ABOUT) },
+                hazeState = hazeState
+
+                )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -202,7 +218,11 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun UserInfoCard(user: UserProfile?) {
+private fun UserInfoCard(
+    user: UserProfile?,
+    hazeState: HazeState
+
+    ) {
     val calculatedAge = if (user != null && user.birthYear > 0) {
         (2026 - user.birthYear).coerceAtLeast(0)
     } else null
@@ -210,9 +230,12 @@ private fun UserInfoCard(user: UserProfile?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+            .glassEffect(
+                hazeState = hazeState,
+                blurRadius = 24.dp,
+                shadowEnabled = true
+            )
+
 
             .padding(horizontal = 22.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -225,7 +248,7 @@ private fun UserInfoCard(user: UserProfile?) {
 }
 
 @Composable
-private fun ProfileInfoRow(label: String, value: String) {
+private fun ProfileInfoRow(label: String, value: String,) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -240,14 +263,18 @@ private fun ProfileInfoRow(label: String, value: String) {
 private fun SettingsCard(
     onPersonalInfoClick: () -> Unit,
     onNotificationsClick: () -> Unit,
-    onAboutClick: () -> Unit
-) {
+    onAboutClick: () -> Unit,
+    hazeState: HazeState,
+
+    ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+            .glassEffect(
+                hazeState = hazeState,
+                blurRadius = 24.dp,
+                shadowEnabled = true
+            )
 
             .padding(vertical = 22.dp, horizontal = 20.dp),
         horizontalAlignment = Alignment.Start

@@ -31,7 +31,13 @@ import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.components.AppBottomNavigationBar
+import com.anay.fitnesstracker.ui.theme.GlassCard
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import com.anay.fitnesstracker.ui.theme.borderGradient
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+
 
 
 private val CardBackground = Color(0x1A3ddc84)
@@ -54,6 +60,8 @@ fun WorkoutScreen(
     onNavigate: (String) -> Unit,
     fitnessViewModel: FitnessViewModel
 ) {
+    val hazeState = rememberHazeState()
+
     val user by fitnessViewModel.currentUser.collectAsState()
 
     // 1. Current Day Identification (Monday .. Sunday)
@@ -143,10 +151,12 @@ fun WorkoutScreen(
     )
 
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .appBackgroundGradient()
+            .hazeSource(state = hazeState)
 
             .statusBarsPadding()
             .navigationBarsPadding(),
@@ -176,6 +186,9 @@ fun WorkoutScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             ActionPillButton(
+                hazeState =  hazeState,
+
+
 
                 title = "Log Workout",
 
@@ -186,6 +199,8 @@ fun WorkoutScreen(
 
             // 2. Full-Width Create Custom Schedule Pill Button
             ActionPillButton(
+                hazeState =  hazeState,
+
                 title = "Create custom schedule",
                 onClick = { onNavigate(Routes.CUSTOM_SCHEDULE) }
             )
@@ -208,6 +223,9 @@ fun WorkoutScreen(
 
             // Today's Clickable Card
             WorkoutDayClickableCard(
+                hazeState = hazeState,
+
+
                 title = todayTitle,
                 muscleGroups = todayMuscles,
                 exerciseCountText = todayExerciseCountText,
@@ -231,6 +249,8 @@ fun WorkoutScreen(
                 // Other Clickable Cards
                 otherWorkouts.forEach { workout ->
                     WorkoutDayClickableCard(
+                        hazeState = hazeState,
+
                         title = workout.title,
                         muscleGroups = workout.muscleGroups,
                         exerciseCountText = workout.exerciseCountText,
@@ -272,104 +292,121 @@ fun WorkoutScreen(
 
 @Composable
 fun WorkoutDayClickableCard(
+    hazeState: HazeState,
     title: String,
     muscleGroups: String = "",
     exerciseCountText: String,
     onClick: () -> Unit
 ) {
-    Row(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-            .clickable { onClick() }
-            .padding(horizontal = 22.dp, vertical = 20.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(onClick = onClick),
+        hazeState = hazeState,
+        blurRadius = 24.dp,
+        contentPadding = PaddingValues(20.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = TextWhite,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            if (muscleGroups.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
-                    text = muscleGroups,
+                    text = title,
                     color = TextWhite,
-                    fontSize = 14.sp
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (muscleGroups.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = muscleGroups,
+                        color = TextWhite,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = exerciseCountText,
+                    color = TextMuted,
+                    fontSize = 12.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = exerciseCountText,
-                color = TextMuted,
-                fontSize = 12.sp
-            )
+            ArrowBadge()
         }
+    }
+}
 
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .background(Color.White),
-            contentAlignment = Alignment.Center
+
+@Composable
+private fun ActionPillButton(
+    hazeState: HazeState,
+    title: String,
+    onClick: () -> Unit
+) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        hazeState = hazeState,
+        blurRadius = 24.dp,
+        contentPadding = PaddingValues(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Open $title",
-                tint = Color.Black,
-                modifier = Modifier.size(16.dp)
+            Text(
+                modifier = Modifier.weight(1f),
+                text = title,
+                color = PrimaryGreen,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
             )
+
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = title,
+                    tint = Color.Black,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ActionPillButton(
-    title: String,
-    onClick: () -> Unit
-) {
-    Row(
+private fun ArrowBadge() {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(CardBackground)
-            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24 .dp))
-
-            .clickable { onClick() }
-            .padding(horizontal = 22.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 1f)),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = title,
-            color = PrimaryGreen,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = Color.Black,
+            modifier = Modifier.size(18.dp)
         )
-
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .background(Color.White),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = title,
-                tint = Color.Black,
-                modifier = Modifier.size(16.dp)
-            )
-        }
     }
 }
 

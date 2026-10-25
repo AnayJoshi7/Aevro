@@ -195,7 +195,7 @@ fun MealLogScreen(
                             Text(
                                 text = "Current Stats",
                                 color = TextWhite,
-                                fontSize = 18.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
 
@@ -217,13 +217,13 @@ fun MealLogScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Text("Calories Consumed", color = TextMuted, fontSize = 13.sp)
+                        Text("Calories Consumed", color = TextMuted, fontSize = 15.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = "$totalCaloriesConsumed",
                                 color = TextWhite,
-                                fontSize = 32.sp,
+                                fontSize = 34.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -237,13 +237,13 @@ fun MealLogScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Text("Carbs", color = TextMuted, fontSize = 13.sp)
+                        Text("Carbs", color = TextMuted, fontSize = 15.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = "${totalCarbs.toInt()}",
                                 color = TextWhite,
-                                fontSize = 28.sp,
+                                fontSize = 34.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -257,13 +257,13 @@ fun MealLogScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Text("Protein", color = TextMuted, fontSize = 13.sp)
+                        Text("Protein", color = TextMuted, fontSize = 15.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = "${totalProtein.toInt()}",
                                 color = TextWhite,
-                                fontSize = 28.sp,
+                                fontSize = 34.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -277,13 +277,13 @@ fun MealLogScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Text("Fats", color = TextMuted, fontSize = 13.sp)
+                        Text("Fats", color = TextMuted, fontSize = 15.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = "${totalFat.toInt()}",
                                 color = TextWhite,
-                                fontSize = 28.sp,
+                                fontSize = 34.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(6.dp))

@@ -46,6 +46,8 @@ fun PreferencesScreen(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(22.dp))
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()

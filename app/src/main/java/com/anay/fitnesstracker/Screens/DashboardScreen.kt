@@ -8,22 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,12 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,18 +37,16 @@ import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.data.StepSensorManager
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.GlassCard
 import com.anay.fitnesstracker.ui.theme.PrimaryGreen
+import com.anay.fitnesstracker.ui.theme.TextMuted
+import com.anay.fitnesstracker.ui.theme.TextWhite
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import java.time.LocalDate
 import java.time.ZoneId
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.text.TextStyle
-
-private val CardBackground = Color(0xFF070708)
-private val PrimaryGreen = Color(0xFF27D07F)
-private val TextWhite = Color(0xFFFFFFFF)
-private val TextMuted = Color(0xFF9E9E9E)
 
 @Composable
 fun DashboardScreen(
@@ -75,49 +54,88 @@ fun DashboardScreen(
     onNavigateMealLog: () -> Unit,
     fitnessViewModel: FitnessViewModel
 ) {
+    val hazeState = rememberHazeState()
     val context = LocalContext.current
+
     val user by fitnessViewModel.currentUser.collectAsState()
     val calorieTarget = user?.dailyCalorieGoal ?: 2400
     val todayWorkout = WorkoutScheduleHelper.getTodayWorkout(user)
 
-    // --- One-Time Physical Activity Permission Request on First Login ---
-    val permissionPrefs = remember { context.getSharedPreferences("app_permission_prefs", Context.MODE_PRIVATE) }
+    // ---------- Activity recognition permission ----------
+
+    val permissionPrefs = remember(context) {
+        context.getSharedPreferences(
+            "app_permission_prefs",
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var activityPermissionGranted by remember(context) {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACTIVITY_RECOGNITION
+                    ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) {
-        permissionPrefs.edit().putBoolean("activity_permission_prompted", true).apply()
+    ) { granted ->
+        activityPermissionGranted = granted
+
+        permissionPrefs.edit()
+            .putBoolean("activity_permission_prompted", true)
+            .apply()
     }
 
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACTIVITY_RECOGNITION
-            ) == PackageManager.PERMISSION_GRANTED
-            val hasPromptedBefore = permissionPrefs.getBoolean("activity_permission_prompted", false)
+            val hasPromptedBefore = permissionPrefs.getBoolean(
+                "activity_permission_prompted",
+                false
+            )
 
-            if (!hasPermission && !hasPromptedBefore) {
-                permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+            if (!activityPermissionGranted && !hasPromptedBefore) {
+                permissionLauncher.launch(
+                    Manifest.permission.ACTIVITY_RECOGNITION
+                )
             }
         }
     }
 
-    // --- Step Tracker Lifecycle ---
-    val stepSensorManager = remember { StepSensorManager(context) }
+    // ---------- Step tracking ----------
+
+    val stepSensorManager = remember(context) {
+        StepSensorManager(context)
+    }
+
     val currentSteps by stepSensorManager.todaySteps.collectAsState()
 
-    DisposableEffect(Unit) {
-        stepSensorManager.startListening()
+    DisposableEffect(stepSensorManager, activityPermissionGranted) {
+        if (activityPermissionGranted) {
+            stepSensorManager.startListening()
+        }
+
         onDispose {
             stepSensorManager.stopListening()
         }
     }
 
-    val stepGoal = 10000
-    val stepsFraction = (currentSteps.toFloat() / stepGoal.toFloat()).coerceIn(0f, 1f)
+    val stepGoal = 10_000
+
+    val stepsFraction =
+        (currentSteps.toFloat() / stepGoal).coerceIn(0f, 1f)
+
     val stepsPercent = (stepsFraction * 100).toInt()
 
-    val targetExercisesToday = remember(todayWorkout.title, todayWorkout.exerciseCountText) {
+    // ---------- Workout target ----------
+
+    val targetExercisesToday = remember(
+        todayWorkout.title,
+        todayWorkout.exerciseCountText
+    ) {
         val mappedCount = when (todayWorkout.title) {
             "Push Day" -> 5
             "Pull Day" -> 6
@@ -127,13 +145,17 @@ fun DashboardScreen(
             "Full Body" -> 6
             else -> 0
         }
+
         if (mappedCount > 0) {
             mappedCount
         } else {
-            val digits = todayWorkout.exerciseCountText.filter { it.isDigit() }
-            digits.toIntOrNull() ?: 5
+            todayWorkout.exerciseCountText
+                .filter { it.isDigit() }
+                .toIntOrNull() ?: 5
         }
     }
+
+    // ---------- Today's totals ----------
 
     val startOfTodayMillis = remember {
         LocalDate.now()
@@ -142,17 +164,30 @@ fun DashboardScreen(
             .toEpochMilli()
     }
 
-    val totalCaloriesConsumedToday = remember(user?.meals, startOfTodayMillis) {
+    val totalCaloriesConsumedToday = remember(
+        user?.meals,
+        startOfTodayMillis
+    ) {
         user?.meals
             ?.filter { it.timestamp >= startOfTodayMillis }
             ?.sumOf { it.calories } ?: 0
     }
+
     val caloriesFraction = if (calorieTarget > 0) {
-        (totalCaloriesConsumedToday.toFloat() / calorieTarget.toFloat()).coerceIn(0f, 1f)
-    } else 0f
+        (
+                totalCaloriesConsumedToday.toFloat() /
+                        calorieTarget
+                ).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
     val caloriesPercent = (caloriesFraction * 100).toInt()
 
-    val completedExercisesToday = remember(user?.loggedWorkouts, startOfTodayMillis) {
+    val completedExercisesToday = remember(
+        user?.loggedWorkouts,
+        startOfTodayMillis
+    ) {
         user?.loggedWorkouts
             ?.filter { it.timestamp >= startOfTodayMillis }
             ?.map { it.exerciseName }
@@ -161,17 +196,29 @@ fun DashboardScreen(
     }
 
     val workoutProgressFraction = if (targetExercisesToday > 0) {
-        (completedExercisesToday.toFloat() / targetExercisesToday.toFloat()).coerceIn(0f, 1f)
+        (
+                completedExercisesToday.toFloat() /
+                        targetExercisesToday
+                ).coerceIn(0f, 1f)
     } else {
         if (completedExercisesToday > 0) 1f else 0f
     }
-    val workoutProgressPercent = (workoutProgressFraction * 100).toInt()
+
+    val workoutProgressPercent =
+        (workoutProgressFraction * 100).toInt()
+
+    // ---------- Screen ----------
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .appBackgroundGradient()
+        modifier = Modifier.fillMaxSize()
     ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .hazeSource(state = hazeState)
+                .appBackgroundGradient()
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -186,40 +233,33 @@ fun DashboardScreen(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.Start
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 28.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                Spacer(modifier = Modifier.height(20.dp))
-
                 Text(
-                    text = "Greetings, ${user?.name?.ifBlank { "Anay" } ?: "Anay"} 👋",
+                    text = "Greetings, ${
+                        user?.name?.ifBlank { "Anay" } ?: "Anay"
+                    } 👋",
                     color = PrimaryGreen,
                     fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-
-                    )
-
-                Spacer(modifier = Modifier.height(36.dp))
-
-                Text(
-                    text = "Today’s Progress",
-                    color = PrimaryGreen,
-                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+
+                SectionTitle("Today’s Progress")
 
                 TodayProgressCard(
+                    hazeState = hazeState,
                     completed = completedExercisesToday,
-                    target = todayWorkout.exerciseCountText.filter { it.isDigit() }.toIntOrNull() ?: 5,
+                    target = targetExercisesToday,
                     fraction = workoutProgressFraction,
                     percent = workoutProgressPercent
                 )
 
-                Spacer(modifier = Modifier.height(18.dp))
-
                 CaloriesCard(
+                    hazeState = hazeState,
                     consumed = totalCaloriesConsumedToday,
                     target = calorieTarget,
                     fraction = caloriesFraction,
@@ -227,38 +267,29 @@ fun DashboardScreen(
                     onClick = onNavigateMealLog
                 )
 
-                Spacer(modifier = Modifier.height(18.dp))
-
                 StepsCard(
+                    hazeState = hazeState,
                     steps = currentSteps,
                     target = stepGoal,
                     fraction = stepsFraction,
                     percent = stepsPercent
                 )
 
-                Spacer(modifier = Modifier.height(26.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = "Today’s Workout",
-                    modifier = Modifier.fillMaxWidth(),
-                    color = PrimaryGreen,
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
+                SectionTitle("Today’s Workout")
 
                 WorkoutCard(
+                    hazeState = hazeState,
                     title = todayWorkout.title,
                     exerciseCount = todayWorkout.exerciseCountText,
                     onClick = {
-                        todayWorkout.route?.let { onNavigate(it) }
+                        todayWorkout.route?.let(onNavigate)
                     }
                 )
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
 
+            // Existing navigation component is retained.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -266,9 +297,9 @@ fun DashboardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 HorizontalDivider(
-                    color = Color(0xFF8E9094).copy(alpha = 0.5f),
-                    thickness = 1.dp,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    color = Color.White.copy(alpha = 0.10f),
+                    thickness = 1.dp
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -284,370 +315,316 @@ fun DashboardScreen(
     }
 }
 
+// ---------- Shared heading ----------
+
 @Composable
-private fun TodayProgressCard(
-    completed: Int,
-    target: Int,
+private fun SectionTitle(
+    title: String
+) {
+    Text(
+        text = title,
+        color = TextWhite,
+        fontSize = 21.sp,
+        fontWeight = FontWeight.Bold
+    )
+}
+
+// ---------- Shared progress indicator ----------
+
+@Composable
+private fun GlassProgressBar(
     fraction: Float,
+    modifier: Modifier = Modifier
+) {
+    val safeFraction = if (fraction.isFinite()) {
+        fraction.coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    Box(
+        modifier = modifier
+            .height(8.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.10f))
+    ) {
+        if (safeFraction > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(safeFraction)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(50))
+                    .background(PrimaryGreen)
+            )
+        }
+    }
+}
+
+// ---------- Shared percentage pill ----------
+
+@Composable
+private fun ProgressPill(
     percent: Int
 ) {
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-
-            .clip(RoundedCornerShape(24.dp))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-            .background(Color(0x1A3DDC84))
-            .padding(horizontal = 22.dp, vertical = 20.dp)
+            .clip(RoundedCornerShape(50))
+            .background(PrimaryGreen.copy(alpha = 0.12f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
+        Text(
+            text = "${percent.coerceIn(0, 100)}%",
+            color = PrimaryGreen,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+// ---------- Reusable metric card ----------
+
+@Composable
+private fun DashboardMetricCard(
+    hazeState: HazeState,
+    title: String,
+    value: String,
+    supportingText: String,
+    fraction: Float,
+    percent: Int,
+    modifier: Modifier = Modifier,
+    footer: String? = null,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        hazeState = hazeState,
+        blurRadius = 40.dp,
+        contentPadding = PaddingValues(20.dp)
+    ) {
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Workouts Completed",
+                    modifier = Modifier.weight(1f),
+                    text = title,
                     color = TextWhite,
-                    fontSize = 19.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Medium
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "$completed / $target",
-                    color = TextWhite,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 36.sp
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(130.dp)
-                            .height(13.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0x805E6065))
-                            .border(1.dp, Color(0xFFffffff).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(fraction)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0x80E4E4E6))
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(
-                        text = "$percent%",
-                        color = TextWhite,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                ProgressPill(percent)
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Box(
-                modifier = Modifier.size(56.dp),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_barbell),
-                    contentDescription = "Workouts",
-                    modifier = Modifier.size(52.dp),
-                    contentScale = ContentScale.Fit
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = value,
+                        color = TextWhite,
+                        fontSize = 36.sp,
+                        lineHeight = 40.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = supportingText,
+                        color = TextMuted,
+                        fontSize = 14.sp
+                    )
+                }
+
+                trailing?.invoke()
+            }
+
+            GlassProgressBar(
+                fraction = fraction,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            footer?.let {
+                Text(
+                    text = it,
+                    color = TextMuted,
+                    fontSize = 12.sp
                 )
             }
         }
     }
 }
 
+// ---------- Workout completion ----------
+
+@Composable
+private fun TodayProgressCard(
+    hazeState: HazeState,
+    completed: Int,
+    target: Int,
+    fraction: Float,
+    percent: Int
+) {
+    DashboardMetricCard(
+        hazeState = hazeState,
+        title = "Workouts Completed",
+        value = completed.toString(),
+        supportingText = "$completed of $target exercises",
+        fraction = fraction,
+        percent = percent,
+        footer = "${(target - completed).coerceAtLeast(0)} remaining",
+        trailing = {
+            Image(
+                painter = painterResource(R.drawable.ic_barbell),
+                contentDescription = null,
+                modifier = Modifier.size(44.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+    )
+}
+
+// ---------- Calories ----------
+
 @Composable
 private fun CaloriesCard(
+    hazeState: HazeState,
     consumed: Int,
     target: Int,
     fraction: Float,
     percent: Int,
     onClick: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0x1A3DDC84))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 22.dp, vertical = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left content column
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = "Calories",
-                    color = TextWhite,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        text = "$consumed / $target ",
-                        color = TextWhite,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 36.sp
-                    )
-
-
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(130.dp)
-                            .height(13.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0x805E6065))
-                            .border(1.dp, Color(0xFFffffff).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(fraction)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0x80E4E4E6))
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(
-                        text = "$percent%",
-                        color = TextWhite,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = "Click on the card to log your meals",
-                    color = TextMuted,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.width(56.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-
-
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(TextWhite),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Log meals",
-                        tint = Color.Black,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-            }
+    DashboardMetricCard(
+        modifier = Modifier.clickable(onClick = onClick),
+        hazeState = hazeState,
+        title = "Calories",
+        value = consumed.toString(),
+        supportingText = "of $target kcal",
+        fraction = fraction,
+        percent = percent,
+        footer = if (consumed > target) {
+            "${consumed - target} kcal over goal · Tap to log meals"
+        } else {
+            "${target - consumed} kcal remaining · Tap to log meals"
+        },
+        trailing = {
+            ArrowBadge()
         }
-    }
+    )
 }
+
+// ---------- Steps ----------
 
 @Composable
 private fun StepsCard(
+    hazeState: HazeState,
     steps: Int,
     target: Int,
     fraction: Float,
     percent: Int
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0x1A3DDC84))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-            .padding(horizontal = 22.dp, vertical = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = "Steps",
-                    color = TextWhite,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        text = "$steps / $target ",
-                        color = TextWhite,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 36.sp
-                    )
-
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(130.dp)
-                            .height(13.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xff5E6065))
-                            .border(1.dp, Color(0x80ffffff).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(fraction)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0x80E4E4E6))
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(
-                        text = "$percent%",
-                        color = TextWhite,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Box(
-                modifier = Modifier.size(56.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_sneakers),
-                    contentDescription = "Steps Sneakers",
-                    modifier = Modifier.size(52.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
+    DashboardMetricCard(
+        hazeState = hazeState,
+        title = "Steps",
+        value = steps.toString(),
+        supportingText = "of $target steps",
+        fraction = fraction,
+        percent = percent,
+        footer = if (steps >= target) {
+            "Daily step goal reached"
+        } else {
+            "${target - steps} remaining"
+        },
+        trailing = {
+            Image(
+                painter = painterResource(R.drawable.ic_sneakers),
+                contentDescription = null,
+                modifier = Modifier.size(44.dp),
+                contentScale = ContentScale.Fit
+            )
         }
-    }
+    )
 }
+
+// ---------- Today's workout ----------
 
 @Composable
 private fun WorkoutCard(
+    hazeState: HazeState,
     title: String,
     exerciseCount: String,
     onClick: () -> Unit
 ) {
-    Row(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(Color(0x1A3DDC84))
-            .border(1.dp, Color(0xFF3DDC84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 24.dp, vertical = 22.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(onClick = onClick),
+        hazeState = hazeState,
+        blurRadius = 24.dp,
+        contentPadding = PaddingValues(20.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = TextWhite,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = exerciseCount,
-                color = TextWhite,
-                fontSize = 14.sp,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Click on the card to start a workout",
-                color = TextMuted,
-                fontSize = 12.sp
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(TextWhite),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Start Workout",
-                tint = Color.Black,
-                modifier = Modifier.size(15.dp)
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = title,
+                    color = TextWhite,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = exerciseCount,
+                    color = TextMuted,
+                    fontSize = 14.sp
+                )
+
+                Text(
+                    text = "Tap to start your workout",
+                    color = PrimaryGreen,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            ArrowBadge()
         }
+    }
+}
+
+// ---------- Shared decorative arrow ----------
+
+@Composable
+private fun ArrowBadge() {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 1f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = Color.Black,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }

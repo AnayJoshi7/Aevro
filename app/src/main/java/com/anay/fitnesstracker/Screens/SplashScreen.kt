@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import com.anay.fitnesstracker.ui.theme.glassEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 private val CardBackground = Color(0x1A3ddc84)
 private val PrimaryGreen = Color(0xFF27D07F)
@@ -39,239 +42,264 @@ fun SplashScreen(
     onLoginSuccess: () -> Unit,
     onNavigateSignUp: () -> Unit
 ) {
+    val hazeState = rememberHazeState()
+
     var username by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .appBackgroundGradient()
+        modifier = Modifier.fillMaxSize()
     ) {
-        Column(
+
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .matchParentSize()
+                .hazeSource(state = hazeState)
+                .appBackgroundGradient()
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // App Logo
-            Image(
-                painter = painterResource(id = R.drawable.ic_logo),
-                contentDescription = "Aevro Logo",
-                modifier = Modifier
-                    .size(110.dp)
-                    .clip(RoundedCornerShape(26.dp)),
-                contentScale = ContentScale.Fit
-            )
-
-            Spacer(modifier = Modifier.height(26.dp))
-
-            // Main Tagline
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Train",
-                    color = TextWhite,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 44.sp,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Fuel",
-                    color = PrimaryGreen,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 44.sp,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Progress",
-                    color = TextWhite,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 44.sp,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Subtitle
-            Text(
-                text = "Your journey to peak performance starts here.",
-                color = TextMuted,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Login Card
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                    .padding(horizontal = 18.dp, vertical = 22.dp)
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Typable Username Field
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x80FFFFFF))
-                        .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (username.isEmpty()) {
-                        Text(
-                            text = "Enter Username",
-                            color = Color(0xFF000000),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Normal
-                        )
-                    }
-                    BasicTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = Color.Black,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                // App Logo
+                Image(
+                    painter = painterResource(id = R.drawable.ic_logo),
+                    contentDescription = "Aevro Logo",
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(RoundedCornerShape(26.dp)),
+                    contentScale = ContentScale.Fit
+                )
+
+                Spacer(modifier = Modifier.height(26.dp))
+
+                // Main Tagline
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Train",
+                        color = TextWhite,
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 44.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Fuel",
+                        color = PrimaryGreen,
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 44.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Progress",
+                        color = TextWhite,
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 44.sp,
+                        textAlign = TextAlign.Center
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Forgot Username Link
+                // Subtitle
                 Text(
-                    text = "Forgot Username?",
+                    text = "Your journey to peak performance starts here.",
                     color = TextMuted,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
-                    modifier = Modifier
-                        .padding(start = 2.dp)
-                        .clickable {
-                            Toast.makeText(
-                                context,
-                                "Username format: INITIALS + YEAR + LAST 4 DIGITS OF PHONE",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
-                // Log In Button
-                Button(
-                    onClick = {
-                        if (username.isBlank()) {
-                            Toast.makeText(context, "Enter your unique username", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        isLoading = true
-                        viewModel.login(
-                            username = username.trim(),
-                            onSuccess = {
-                                isLoading = false
-                                onLoginSuccess()
-                            },
-                            onError = { err ->
-                                isLoading = false
-                                Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x803ddc84)),
-
-                    shape = RoundedCornerShape(20.dp),
+                // Login Card
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-
-                        .height(50.dp),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = Color.Black,
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.5.dp
+                        .glassEffect(
+                            hazeState = hazeState,
+                            blurRadius = 24.dp,
+                            shadowEnabled = true
                         )
-                    } else {
-                        Text(
-                            text = "Log In",
-                            color = Color.Black,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+
+
+                        .padding(horizontal = 18.dp, vertical = 22.dp)
+                ) {
+                    // Typable Username Field
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0x80FFFFFF))
+                            .border(
+                                1.dp,
+                                Color(0xFFFFFFFF).copy(alpha = 0.5f),
+                                RoundedCornerShape(16.dp)
+                            )
+
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (username.isEmpty()) {
+                            Text(
+                                text = "Enter Username",
+                                color = Color(0xFF000000),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                        BasicTextField(
+                            value = username,
+                            onValueChange = { username = it },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                color = Color.Black,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Forgot Username Link
+                    Text(
+                        text = "Forgot Username?",
+                        color = TextMuted,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier
+                            .padding(start = 2.dp)
+                            .clickable {
+                                Toast.makeText(
+                                    context,
+                                    "Username format: INITIALS + YEAR + LAST 4 DIGITS OF PHONE",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Log In Button
+                    Button(
+                        onClick = {
+                            if (username.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    "Enter your unique username",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@Button
+                            }
+                            isLoading = true
+                            viewModel.login(
+                                username = username.trim(),
+                                onSuccess = {
+                                    isLoading = false
+                                    onLoginSuccess()
+                                },
+                                onError = { err ->
+                                    isLoading = false
+                                    Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x803ddc84)),
+
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp,
+                                Color(0xFF3ddc84).copy(alpha = 0.5f),
+                                RoundedCornerShape(20.dp)
+                            )
+
+                            .height(50.dp),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.Black,
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Log In",
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
-            // NEW? Section Header
-            Text(
-                text = "NEW?",
-                color = PrimaryGreen,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(start = 6.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Sign Up Button Pill
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(20.dp))
-
-                    .clickable { onNavigateSignUp() },
-                contentAlignment = Alignment.Center
-            ) {
+                // NEW? Section Header
                 Text(
-                    text = "Click here to sign-up",
-                    color = TextWhite,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = "NEW?",
+                    color = PrimaryGreen,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(start = 6.dp)
                 )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Sign Up Button Pill
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .glassEffect(
+                            hazeState = hazeState,
+                            blurRadius = 24.dp,
+                            shadowEnabled = true
+                        )
+
+                        .clickable { onNavigateSignUp() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Click here to sign-up",
+                        color = TextWhite,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(36.dp))
+
+                // Bottom Graphic (Shoe, Kettlebell, Muscle Arm)
+                Image(
+                    painter = painterResource(id = R.drawable.ic_splash),
+                    contentDescription = "Fitness Icons",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            Spacer(modifier = Modifier.height(36.dp))
-
-            // Bottom Graphic (Shoe, Kettlebell, Muscle Arm)
-            Image(
-                painter = painterResource(id = R.drawable.ic_splash),
-                contentDescription = "Fitness Icons",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                contentScale = ContentScale.Fit
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

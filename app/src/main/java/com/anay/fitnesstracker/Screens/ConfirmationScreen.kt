@@ -40,7 +40,7 @@ fun ConfirmationScreen(
         horizontalAlignment = Alignment.CenterHorizontally
 
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(22.dp))
 
         Column(
             modifier = Modifier
@@ -102,7 +102,6 @@ fun ConfirmationScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            icons()
         }
 
         NextPillButton(

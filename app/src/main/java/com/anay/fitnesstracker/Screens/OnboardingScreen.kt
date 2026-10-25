@@ -183,9 +183,7 @@ fun OnboardingScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        SplashTopIcons()
 
-        Spacer(modifier = Modifier.height(20.dp))
 
         // Next Button Pill from components
         NextPillButton(
@@ -206,7 +204,7 @@ fun OnboardingScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
     }
 }
 
