@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,8 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.data.*
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import com.anay.fitnesstracker.util.BarcodeAnalyzer
+
 
 private val CardDarkBg = Color(0x1A3DDC84)
 private val CardBorderColor = Color(0xFF3DDC84).copy(alpha = 0.18f)
@@ -52,10 +55,12 @@ private val TextMuted = Color(0xFF9E9E9E)
 @Composable
 fun AddMealScreen(
     fitnessViewModel: FitnessViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateScan: () -> Unit
 ) {
     val context = LocalContext.current
     val foodsList by fitnessViewModel.foodsList.collectAsState()
+    val pendingScannedFood by fitnessViewModel.pendingScannedFood.collectAsState()
 
     var mealName by remember { mutableStateOf("") }
     val stagedItems = remember { mutableStateListOf<MealItemEntry>() }
@@ -90,6 +95,22 @@ fun AddMealScreen(
         manualCalories = true
     }
 
+    // Auto-populate when returning from QR/Barcode scanner
+    LaunchedEffect(pendingScannedFood) {
+        pendingScannedFood?.let { scannedItem ->
+            selectedFood = scannedItem
+            foodSearchQuery = scannedItem.name
+            manualProtein = false
+            manualCarbs = false
+            manualFats = false
+            manualCalories = false
+            qtyText = "1"
+            selectedServingUnit = if (scannedItem.servingBasis.contains("ml", ignoreCase = true)) "ml" else "grams"
+            fitnessViewModel.clearPendingScannedFood()
+            Toast.makeText(context, "Loaded: ${scannedItem.name}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun parseBaseServingSize(basis: String): Double {
         val digits = basis.takeWhile { it.isDigit() || it == '.' }
         if (digits.isNotEmpty()) {
@@ -99,7 +120,7 @@ fun AddMealScreen(
         return matched?.value?.toDoubleOrNull() ?: 100.0
     }
 
-    // Auto-calculate logic (only runs when a catalog item is chosen and not manually edited)
+    // Auto-calculate logic (runs when catalog item is selected and manual override is off)
     LaunchedEffect(selectedFood, qtyText, selectedServingUnit) {
         val food = selectedFood ?: return@LaunchedEffect
         val enteredQty = qtyText.toDoubleOrNull() ?: 0.0
@@ -237,6 +258,47 @@ fun AddMealScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
+                    // Item Header Row with Scan Barcode/QR Pill
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Item-${stagedItems.size + 1}",
+                            color = TextWhite,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        // Scan Barcode / QR Pill Button
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFF162E21))
+                                .border(1.dp, PrimaryGreen.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                .clickable { onNavigateScan() }
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = "Scan Barcode or QR",
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Scan Code",
+                                color = PrimaryGreen,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     // Item-1, Qty, Serving Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -245,13 +307,6 @@ fun AddMealScreen(
                     ) {
                         // Item Selector (Search or Custom Entry Pill)
                         Column(modifier = Modifier.weight(1.3f)) {
-                            Text(
-                                text = "Item-${stagedItems.size + 1}",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -329,13 +384,6 @@ fun AddMealScreen(
                             modifier = Modifier.weight(0.75f),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = "Qty",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -375,13 +423,6 @@ fun AddMealScreen(
                             modifier = Modifier.weight(1.05f),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = "Serving",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -433,6 +474,7 @@ fun AddMealScreen(
                         }
                     }
 
+                    // Docked Dropdown Menu
                     AnimatedVisibility(
                         visible = foodDropdownOpen && (filteredFoods.isNotEmpty() || foodSearchQuery.isNotBlank()),
                         enter = fadeIn() + expandVertically(),
@@ -448,7 +490,7 @@ fun AddMealScreen(
                                 .border(1.dp, Color(0xFFFFFFFF), RoundedCornerShape(16.dp))
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            // Custom item selection option
+                            // Custom unlisted item option
                             if (foodSearchQuery.isNotBlank() && foodsList.none { it.name.equals(foodSearchQuery, ignoreCase = true) }) {
                                 Row(
                                     modifier = Modifier
@@ -502,7 +544,7 @@ fun AddMealScreen(
                                 )
                             }
 
-                            // Food items list
+                            // Catalog Food items list
                             filteredFoods.forEachIndexed { index, food ->
                                 Row(
                                     modifier = Modifier
@@ -696,7 +738,7 @@ fun AddMealScreen(
                         }
                     }
 
-                    // Staged Items Summary (Clean inline wrapping)
+                    // Staged Items Summary
                     if (stagedItems.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(18.dp))
                         Text(

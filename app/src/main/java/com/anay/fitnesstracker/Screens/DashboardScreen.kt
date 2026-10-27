@@ -298,18 +298,17 @@ fun DashboardScreen(
             ) {
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 4.dp),
-                    color = Color.White.copy(alpha = 0.10f),
+                    color = Color.White.copy(alpha = 0.5f),
                     thickness = 1.dp
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(110.dp))
+//                AppBottomNavigationBar(
+//                    currentRoute = Routes.DASHBOARD,
+//                    onNavigate = onNavigate,
+//                    hazeState = hazeState
+//                )
 
-                AppBottomNavigationBar(
-                    currentRoute = Routes.DASHBOARD,
-                    onNavigate = onNavigate
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
@@ -399,7 +398,7 @@ private fun DashboardMetricCard(
     GlassCard(
         modifier = modifier.fillMaxWidth(),
         hazeState = hazeState,
-        blurRadius = 40.dp,
+        blurRadius = 24.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Column(
@@ -479,7 +478,7 @@ private fun TodayProgressCard(
         hazeState = hazeState,
         title = "Workouts Completed",
         value = completed.toString(),
-        supportingText = "$completed of $target exercises",
+        supportingText = "of $target exercises",
         fraction = fraction,
         percent = percent,
         footer = "${(target - completed).coerceAtLeast(0)} remaining",

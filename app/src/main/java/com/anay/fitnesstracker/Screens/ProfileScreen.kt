@@ -205,14 +205,14 @@ fun ProfileScreen(
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(110.dp))
+//            AppBottomNavigationBar(
+//                currentRoute = Routes.PROFILE,
+//                onNavigate = onNavigate,
+//                hazeState = hazeState
+//
+//            )
 
-            AppBottomNavigationBar(
-                currentRoute = Routes.PROFILE,
-                onNavigate = onNavigate
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
@@ -289,7 +289,7 @@ private fun SettingsCard(
         Spacer(modifier = Modifier.height(20.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            SettingsButton(label = "Personal Information", onClick = onPersonalInfoClick)
+            SettingsButton(label = "Account Settings", onClick = onPersonalInfoClick)
             SettingsButton(label = "Notifications", onClick = onNotificationsClick)
             SettingsButton(label = "About", onClick = onAboutClick)
         }

@@ -6,7 +6,18 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.anay.fitnesstracker.data.*
-
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import com.anay.fitnesstracker.components.*
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import com.anay.fitnesstracker.data.repository.ExerciseRepository
 import com.anay.fitnesstracker.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestore
@@ -19,6 +30,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
+import com.anay.fitnesstracker.data.repository.FoodLookupRepository
+import com.google.firebase.firestore.toObject
+import kotlinx.coroutines.flow.asStateFlow
+import com.anay.fitnesstracker.data.FoodItem
+import com.google.firebase.firestore.auth.User
+
+sealed class UsernameCheckState {
+    object Idle : UsernameCheckState()
+    object Checking : UsernameCheckState()
+    object Available : UsernameCheckState()
+    data class Unavailable(val message: String) : UsernameCheckState()
+}
 
 class FitnessViewModel(application: Application) : AndroidViewModel(application) {
     private val db = FirebaseFirestore.getInstance().apply {
@@ -42,6 +65,205 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     val isSessionChecking: StateFlow<Boolean> = _isSessionChecking.asStateFlow()
 
     private var userSnapshotListener: ListenerRegistration? = null
+    private val _pendingScannedFood = MutableStateFlow<FoodItem?>(null)
+    val pendingScannedFood: StateFlow<FoodItem?> = _pendingScannedFood.asStateFlow()
+    private var debounceJob: Job? = null
+    private val _usernameCheckState = MutableStateFlow<UsernameCheckState>(UsernameCheckState.Idle)
+    val usernameCheckState: StateFlow<UsernameCheckState> = _usernameCheckState.asStateFlow()
+
+    fun resetUsernameCheckState() {
+        _usernameCheckState.value = UsernameCheckState.Idle
+    }
+
+    fun checkUsernameAvailability(rawInput: String) {
+        debounceJob?.cancel()
+
+        val clean = rawInput.trim().lowercase().removePrefix("@")
+        val current = currentUser.value?.username?.trim()?.lowercase()?.removePrefix("@") ?: ""
+
+        Log.d("FitnessVM", "Checking username: '$clean', current: '$current'")
+
+        if (clean.length < 3) {
+            _usernameCheckState.value = UsernameCheckState.Unavailable("Must be at least 3 characters")
+            return
+        }
+
+        if (clean.length > 20) {
+            _usernameCheckState.value = UsernameCheckState.Unavailable("Max 20 characters allowed")
+            return
+        }
+
+        val usernameRegex = Regex("^[a-zA-Z0-9_.]+$")
+        if (!usernameRegex.matches(clean)) {
+            _usernameCheckState.value = UsernameCheckState.Unavailable("Only letters, numbers, _, and . allowed")
+            return
+        }
+
+        // If it's unchanged, disallow or mark idle
+        if (clean == current) {
+            _usernameCheckState.value = UsernameCheckState.Unavailable("This is already your current username")
+            return
+        }
+
+        _usernameCheckState.value = UsernameCheckState.Checking
+
+        debounceJob = viewModelScope.launch {
+            delay(300) // 300ms debounce
+            try {
+                val firestore = FirebaseFirestore.getInstance()
+                val querySnapshot = firestore.collection("users")
+                    .whereEqualTo("username", clean)
+                    .get()
+                    .await()
+
+                // Also check for case-insensitive matches if needed
+                val matchingDoc = querySnapshot.documents.firstOrNull()
+                val myId = currentUser.value?.username
+
+                if (matchingDoc != null && matchingDoc.id != myId) {
+                    _usernameCheckState.value = UsernameCheckState.Unavailable("Username is already taken")
+                } else {
+                    _usernameCheckState.value = UsernameCheckState.Available
+                }
+                Log.d("FitnessVM", "Availability set to: ${_usernameCheckState.value}")
+            } catch (e: Exception) {
+                Log.e("FitnessVM", "Error checking users collection: ${e.message}", e)
+                _usernameCheckState.value = UsernameCheckState.Unavailable(e.localizedMessage ?: "Availability check failed")
+            }
+        }
+    }
+
+    fun updateUsername(
+        newUsername: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val currentUserData = currentUser.value ?: return
+
+        // 1. Keep the exact current document ID so Firestore can locate and delete it
+        val oldDocId = currentUserData.username.trim()
+
+        // 2. Preserve exact display casing for the UI
+        val displayUsername = newUsername.trim().removePrefix("@")
+
+        // 3. Normalized lowercase document ID for reliable lookups
+        val newDocId = displayUsername.lowercase()
+
+        if (newDocId.isBlank()) {
+            onError("Username cannot be empty")
+            return
+        }
+
+        if (newDocId == oldDocId.lowercase() && displayUsername == currentUserData.username) {
+            onError("Please choose a different username")
+            return
+        }
+
+        viewModelScope.launch {
+            val firestore = FirebaseFirestore.getInstance()
+            try {
+                // Check if another user already owns this lowercase document ID
+                val targetDoc = firestore.collection("users").document(newDocId).get().await()
+                if (targetDoc.exists() && newDocId != oldDocId.lowercase()) {
+                    onError("Username is already taken")
+                    return@launch
+                }
+
+                // Fetch the existing document using its EXACT original ID
+                var sourceDoc = firestore.collection("users").document(oldDocId).get().await()
+                var actualExistingDocId = oldDocId
+
+                // Fallback: if not found with exact casing, try lowercase
+                if (!sourceDoc.exists()) {
+                    val fallbackDoc = firestore.collection("users").document(oldDocId.lowercase()).get().await()
+                    if (fallbackDoc.exists()) {
+                        sourceDoc = fallbackDoc
+                        actualExistingDocId = oldDocId.lowercase()
+                    } else {
+                        onError("Original user record not found")
+                        return@launch
+                    }
+                }
+
+                val data = sourceDoc.data?.toMutableMap() ?: mutableMapOf()
+
+                // Store the display username with preferred casing
+                data["username"] = displayUsername
+
+                val batch = firestore.batch()
+                val newDocRef = firestore.collection("users").document(newDocId)
+                batch.set(newDocRef, data)
+
+                // Delete the old document using its exact discovered ID
+                if (actualExistingDocId != newDocId) {
+                    val oldDocRef = firestore.collection("users").document(actualExistingDocId)
+                    batch.delete(oldDocRef)
+                }
+
+                batch.commit().await()
+
+                // Update local state
+                _currentUser.value = currentUserData.copy(username = displayUsername)
+                _usernameCheckState.value = FitnessViewModel.UsernameCheckState.Idle
+
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("FitnessVM", "Error updating username: ${e.message}", e)
+                onError(e.localizedMessage ?: "Failed to update username")
+            }
+        }
+    }
+
+    fun deleteAccount(
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val currentUserData = currentUser.value ?: run {
+            onError("No active user session")
+            return
+        }
+
+        val docId = currentUserData.username.trim()
+
+        viewModelScope.launch {
+            val firestore = FirebaseFirestore.getInstance()
+            try {
+                // 1. Try deleting with exact casing
+                val userRef = firestore.collection("users").document(docId)
+                val doc = userRef.get().await()
+
+                if (doc.exists()) {
+                    userRef.delete().await()
+                } else {
+                    // Fallback to lowercase document ID if casing differed
+                    val lowerRef = firestore.collection("users").document(docId.lowercase())
+                    lowerRef.delete().await()
+                }
+
+                // 2. Clear state
+                _currentUser.value = null
+                resetUsernameCheckState()
+
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("FitnessVM", "Failed to delete account: ${e.message}", e)
+                onError(e.localizedMessage ?: "Failed to delete account")
+            }
+        }
+    }
+    sealed class UsernameCheckState {
+        object Idle : UsernameCheckState()
+        object Checking : UsernameCheckState()
+        object Available : UsernameCheckState()
+        data class Unavailable(val message: String) : UsernameCheckState()
+    }
+    fun setPendingScannedFood(food: FoodItem) {
+        _pendingScannedFood.value = food
+    }
+
+    fun clearPendingScannedFood() {
+        _pendingScannedFood.value = null
+    }
 
 
     init {
@@ -319,39 +541,40 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             }
     }
 
-    fun login(username: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun login(username: String, onComplete: (Boolean) -> Unit) {
+        val rawInput = username.trim().removePrefix("@")
+        val lowerInput = rawInput.lowercase()
+
         viewModelScope.launch {
             try {
-                val snapshot = db.collection("users").document(username.trim()).get().await()
-                if (snapshot.exists()) {
-                    var profile = snapshot.toObject(UserProfile::class.java)!!
+                val firestore = FirebaseFirestore.getInstance()
 
-                    val loginNotif = NotificationItem(
-                        id = UUID.randomUUID().toString(),
-                        message = "Recent Login to your Account",
-                        timestamp = System.currentTimeMillis()
-                    )
-                    val updatedNotifs = listOf(loginNotif) + profile.notifications
-                    profile = profile.copy(notifications = updatedNotifs)
+                var doc = firestore.collection("users").document(rawInput).get().await()
 
-                    db.collection("users").document(profile.username)
-                        .set(mapOf("notifications" to updatedNotifs), SetOptions.merge())
+                if (!doc.exists()) {
+                    doc = firestore.collection("users").document(lowerInput).get().await()
+                }
 
-                    sessionManager.saveUsername(profile.username)
-                    _currentUser.value = profile
-                    attachUserListener(profile.username)
-                    onSuccess()
+                if (!doc.exists()) {
+                    val querySnapshot = firestore.collection("users")
+                        .whereEqualTo("username", rawInput)
+                        .limit(1)
+                        .get()
+                        .await()
+                    doc = querySnapshot.documents.firstOrNull() ?: doc
+                }
+
+                if (doc.exists()) {
+                    val loadedUser = doc.toObject<UserProfile>()
+                    _currentUser.value = loadedUser
+                    onComplete(true)
                 } else {
-                    onError("Username not found!")
+                    Log.e("FitnessVM", "User document not found for $rawInput or $lowerInput")
+                    onComplete(false)
                 }
             } catch (e: Exception) {
-                // If offline, check if session exists locally
-                if (sessionManager.getUsername() == username.trim()) {
-                    attachUserListener(username.trim())
-                    onSuccess()
-                } else {
-                    onError(e.localizedMessage ?: "Error during login. Check internet connection.")
-                }
+                Log.e("FitnessVM", "Login failed: ${e.message}", e)
+                onComplete(false)
             }
         }
     }
@@ -502,6 +725,20 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     private fun getDefaultCustomDays(): List<CustomDayWorkout> {
         return listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday").map {
             CustomDayWorkout(dayName = it, muscleGroup = "")
+        }
+    }
+    fun lookupFoodByBarcode(barcode: String, onResult: (FoodItem?) -> Unit) {
+        // 1. Check if the barcode matches any item in local Firestore collection
+        val localMatch = _foodsList.value.firstOrNull { it.id.equals(barcode, ignoreCase = true) }
+        if (localMatch != null) {
+            onResult(localMatch)
+            return
+        }
+
+        // 2. Query Open Food Facts public database
+        viewModelScope.launch {
+            val remoteItem = FoodLookupRepository.fetchProductByBarcode(barcode)
+            onResult(remoteItem)
         }
     }
 

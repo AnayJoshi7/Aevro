@@ -76,6 +76,10 @@ fun ConfirmationScreen(
                 Text(tempUser.username, color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text("Save this username. You’ll use it to log in.", color = TextMuted, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("(You can edit this username later)", color = TextMuted, fontSize = 12.sp)
+
+
             }
 
             Spacer(modifier = Modifier.height(20.dp))

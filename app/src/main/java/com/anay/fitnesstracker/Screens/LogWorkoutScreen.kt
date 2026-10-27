@@ -1,15 +1,17 @@
 package com.anay.fitnesstracker.Screens
 
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,12 +24,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -36,7 +40,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.anay.fitnesstracker.R
+import com.anay.fitnesstracker.data.*
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.WorkoutSet
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
@@ -44,6 +50,9 @@ import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.round
 
 private val CardDarkBg = Color(0x1A3DDC84)
 private val CardBorderColor = Color(0xFF3DDC84).copy(alpha = 0.20f)
@@ -92,6 +101,9 @@ fun LogWorkoutScreen(
 
     var cardioDurationMins by remember { mutableStateOf("") }
 
+    // Dialog state for editing a saved exercise
+    var editingWorkout by remember { mutableStateOf<LoggedExercise?>(null) }
+
     val allAvailableExercises = remember(user?.customExercises, logMode) {
         if (logMode == WorkoutLogMode.CARDIO) {
             listOf("Treadmill", "Cycling", "Running", "Elliptical", "Rowing", "Jump Rope", "Stair Climber")
@@ -111,6 +123,25 @@ fun LogWorkoutScreen(
                 WorkoutSet(setNumber = 2, weightKg = "", reps = ""),
                 WorkoutSet(setNumber = 3, weightKg = "", reps = "")
             )
+        )
+    }
+
+    // Horizontal Swipe Gesture Handler
+    var totalDrag by remember { mutableFloatStateOf(0f) }
+    val swipeModifier = Modifier.pointerInput(logMode) {
+        detectHorizontalDragGestures(
+            onDragStart = { totalDrag = 0f },
+            onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount },
+            onDragEnd = {
+                val swipeThreshold = 60f
+                if (totalDrag < -swipeThreshold && logMode == WorkoutLogMode.WEIGHTS) {
+                    logMode = WorkoutLogMode.CARDIO
+                    selectedExercise = ""
+                } else if (totalDrag > swipeThreshold && logMode == WorkoutLogMode.CARDIO) {
+                    logMode = WorkoutLogMode.WEIGHTS
+                    selectedExercise = ""
+                }
+            }
         )
     }
 
@@ -152,18 +183,36 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Weights / Cardio Segmented Switcher[cite: 23, 24]
-        Box(
+        // Weights / Cardio Segmented Switcher with Sliding Capsule & Swipe Support
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(swipeModifier)
                 .clip(RoundedCornerShape(20.dp))
                 .border(1.dp, CardBorderColor, RoundedCornerShape(20.dp))
                 .background(CardDarkBg)
                 .padding(6.dp)
         ) {
+            val totalWidth = maxWidth
+            val halfWidth = totalWidth / 2
+            val indicatorOffset by animateDpAsState(
+                targetValue = if (logMode == WorkoutLogMode.WEIGHTS) 0.dp else halfWidth,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+                label = "segmentedIndicator"
+            )
+
+            // Animated Gliding Pill
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset)
+                    .width(halfWidth)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(PrimaryGreen)
+            )
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 // Weights Option
                 Box(
@@ -171,8 +220,10 @@ fun LogWorkoutScreen(
                         .weight(1f)
                         .height(44.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (logMode == WorkoutLogMode.WEIGHTS) PrimaryGreen else Color.Transparent)
-                        .clickable {
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
                             if (logMode != WorkoutLogMode.WEIGHTS) {
                                 logMode = WorkoutLogMode.WEIGHTS
                                 selectedExercise = ""
@@ -194,8 +245,10 @@ fun LogWorkoutScreen(
                         .weight(1f)
                         .height(44.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (logMode == WorkoutLogMode.CARDIO) PrimaryGreen else Color.Transparent)
-                        .clickable {
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
                             if (logMode != WorkoutLogMode.CARDIO) {
                                 logMode = WorkoutLogMode.CARDIO
                                 selectedExercise = ""
@@ -215,10 +268,11 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Main Exercise Form Card[cite: 23, 24]
+        // Main Exercise Form Card (Swipable)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(swipeModifier)
                 .clip(RoundedCornerShape(24.dp))
                 .background(CardDarkBg)
                 .border(1.dp, CardBorderColor, RoundedCornerShape(24.dp))
@@ -356,315 +410,334 @@ fun LogWorkoutScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // ================== WEIGHTS MODE ==================[cite: 23]
-            if (logMode == WorkoutLogMode.WEIGHTS) {
-                // Sets Table Container[cite: 23, 26]
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFF0F1E16))
-                        .border(1.dp, CardBorderColor, RoundedCornerShape(18.dp))
-                        .padding(horizontal = 12.dp, vertical = 14.dp)
-                ) {
-                    // Unified Header Row[cite: 23, 26]
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "SET",
-                            color = TextWhite,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.width(36.dp),
-                            textAlign = TextAlign.Center
+            // Animated Mode Switcher (Horizontal Slide on Swipe)
+            AnimatedContent(
+                targetState = logMode,
+                transitionSpec = {
+                    if (targetState == WorkoutLogMode.CARDIO) {
+                        (slideInHorizontally(tween(250)) { it } + fadeIn()).togetherWith(
+                            slideOutHorizontally(tween(250)) { -it } + fadeOut()
                         )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = if (isKg) "WEIGHT (KG)" else "WEIGHT (LB)",
-                            color = TextWhite,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1.35f),
-                            textAlign = TextAlign.Center
+                    } else {
+                        (slideInHorizontally(tween(250)) { -it } + fadeIn()).togetherWith(
+                            slideOutHorizontally(tween(250)) { it } + fadeOut()
                         )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Text(
-                            text = "REPS",
-                            color = TextWhite,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        // Compact Kg / Lb Pill Toggle Container[cite: 23, 26]
-                        Box(
-                            modifier = Modifier.width(62.dp),
-                            contentAlignment = Alignment.Center
+                    }
+                },
+                label = "modeSwipeTransition"
+            ) { targetMode ->
+                if (targetMode == WorkoutLogMode.WEIGHTS) {
+                    // ================== WEIGHTS MODE ==================
+                    Column {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color(0xFF0F1E16))
+                                .border(1.dp, CardBorderColor, RoundedCornerShape(18.dp))
+                                .padding(horizontal = 12.dp, vertical = 14.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF1E382B))
-                                    .border(1.dp, CardBorderColor, RoundedCornerShape(12.dp))
-                                    .padding(2.dp)
+                            // Unified Header Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "SET",
+                                    color = TextWhite,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(36.dp),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Text(
+                                    text = if (isKg) "WEIGHT (KG)" else "WEIGHT (LB)",
+                                    color = TextWhite,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1.35f),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Text(
+                                    text = "REPS",
+                                    color = TextWhite,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // Compact Kg / Lb Pill Toggle Container
+                                Box(
+                                    modifier = Modifier.width(62.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(if (isKg) PrimaryGreen else Color.Transparent)
-                                            .clickable { isKg = true }
-                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xFF1E382B))
+                                            .border(1.dp, CardBorderColor, RoundedCornerShape(12.dp))
+                                            .padding(2.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(if (isKg) PrimaryGreen else Color.Transparent)
+                                                    .clickable { isKg = true }
+                                                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "Kg",
+                                                    color = if (isKg) Color.Black else TextWhite,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(if (!isKg) PrimaryGreen else Color.Transparent)
+                                                    .clickable { isKg = false }
+                                                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "Lb",
+                                                    color = if (!isKg) Color.Black else TextWhite,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            currentSets.forEachIndexed { index, setItem ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${setItem.setNumber}",
+                                        color = TextWhite,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.width(36.dp),
+                                        textAlign = TextAlign.Center
+                                    )
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    // Weight input pill
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1.35f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(PillGrayBg),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = "Kg",
-                                            color = if (isKg) Color.Black else TextWhite,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
+                                        BasicTextField(
+                                            value = setItem.weightKg,
+                                            onValueChange = { newVal ->
+                                                currentSets = currentSets.toMutableList().also {
+                                                    it[index] = it[index].copy(weightKg = newVal)
+                                                }
+                                            },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            singleLine = true,
+                                            textStyle = TextStyle(
+                                                color = Color.Black,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
                                         )
                                     }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    // Reps input pill
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(if (!isKg) PrimaryGreen else Color.Transparent)
-                                            .clickable { isKg = false }
-                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(PillGrayBg),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = "Lb",
-                                            color = if (!isKg) Color.Black else TextWhite,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
+                                        BasicTextField(
+                                            value = setItem.reps,
+                                            onValueChange = { newVal ->
+                                                currentSets = currentSets.toMutableList().also {
+                                                    it[index] = it[index].copy(reps = newVal)
+                                                }
+                                            },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            singleLine = true,
+                                            textStyle = TextStyle(
+                                                color = Color.Black,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
                                         )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    // Delete Set Icon Container
+                                    Box(
+                                        modifier = Modifier.width(62.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (currentSets.size > 1) {
+                                            IconButton(
+                                                onClick = {
+                                                    val mutable = currentSets.toMutableList()
+                                                    mutable.removeAt(index)
+                                                    currentSets = mutable.mapIndexed { i, s -> s.copy(setNumber = i + 1) }
+                                                },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Delete Set",
+                                                    tint = TextWhite.copy(alpha = 0.8f),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
-                    currentSets.forEachIndexed { index, setItem ->
+                        // + Add Set & Copy Last Set Buttons
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // Set Number
-                            Text(
-                                text = "${setItem.setNumber}",
-                                color = TextWhite,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.width(36.dp),
-                                textAlign = TextAlign.Center
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            // Weight input pill
-                            Box(
-                                modifier = Modifier
-                                    .weight(1.35f)
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(PillGrayBg),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                BasicTextField(
-                                    value = setItem.weightKg,
-                                    onValueChange = { newVal ->
-                                        currentSets = currentSets.toMutableList().also {
-                                            it[index] = it[index].copy(weightKg = newVal)
-                                        }
-                                    },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    textStyle = TextStyle(
-                                        color = Color.Black,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            // Reps input pill
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(PillGrayBg),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                BasicTextField(
-                                    value = setItem.reps,
-                                    onValueChange = { newVal ->
-                                        currentSets = currentSets.toMutableList().also {
-                                            it[index] = it[index].copy(reps = newVal)
-                                        }
-                                    },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    textStyle = TextStyle(
-                                        color = Color.Black,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            // Delete Set Icon Container
-                            Box(
-                                modifier = Modifier.width(62.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (currentSets.size > 1) {
-                                    IconButton(
-                                        onClick = {
-                                            val mutable = currentSets.toMutableList()
-                                            mutable.removeAt(index)
-                                            currentSets = mutable.mapIndexed { i, s -> s.copy(setNumber = i + 1) }
-                                        },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Delete Set",
-                                            tint = TextWhite.copy(alpha = 0.8f),
-                                            modifier = Modifier.size(16.dp)
+                                    .height(46.dp)
+                                    .clip(RoundedCornerShape(23.dp))
+                                    .background(PrimaryGreen)
+                                    .clickable {
+                                        currentSets = currentSets + WorkoutSet(
+                                            setNumber = currentSets.size + 1,
+                                            weightKg = "",
+                                            reps = ""
                                         )
-                                    }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Add Set",
+                                        color = Color.Black,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .clip(RoundedCornerShape(23.dp))
+                                    .background(PrimaryGreen)
+                                    .clickable {
+                                        val lastSet = currentSets.lastOrNull()
+                                        currentSets = currentSets + WorkoutSet(
+                                            setNumber = currentSets.size + 1,
+                                            weightKg = lastSet?.weightKg ?: "",
+                                            reps = lastSet?.reps ?: ""
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Copy Last Set",
+                                    color = Color.Black,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // + Add Set & Copy Last Set Buttons[cite: 23]
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp)
-                            .clip(RoundedCornerShape(23.dp))
-                            .background(PrimaryGreen)
-                            .clickable {
-                                currentSets = currentSets + WorkoutSet(
-                                    setNumber = currentSets.size + 1,
-                                    weightKg = "",
-                                    reps = ""
-                                )
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint = Color.Black,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Add Set",
-                                color = Color.Black,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp)
-                            .clip(RoundedCornerShape(23.dp))
-                            .background(PrimaryGreen)
-                            .clickable {
-                                val lastSet = currentSets.lastOrNull()
-                                currentSets = currentSets + WorkoutSet(
-                                    setNumber = currentSets.size + 1,
-                                    weightKg = lastSet?.weightKg ?: "",
-                                    reps = lastSet?.reps ?: ""
-                                )
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
+                } else {
+                    // ================== CARDIO MODE ==================
+                    Column {
                         Text(
-                            text = "Copy Last Set",
-                            color = Color.Black,
-                            fontSize = 14.sp,
+                            text = "Duration (MINS)",
+                            color = TextWhite,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
-                    }
-                }
-            } else {
-                // ================== CARDIO MODE ==================[cite: 24]
-                Text(
-                    text = "Duration (MINS)",
-                    color = TextWhite,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(PillGrayBg)
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (cardioDurationMins.isEmpty()) {
-                        Text("e.g. 30, 45", color = Color(0xFF4A4E4C), fontSize = 14.sp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(PillGrayBg)
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (cardioDurationMins.isEmpty()) {
+                                Text("e.g. 30, 45", color = Color(0xFF4A4E4C), fontSize = 14.sp)
+                            }
+                            BasicTextField(
+                                value = cardioDurationMins,
+                                onValueChange = { cardioDurationMins = it },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    color = Color.Black,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
-                    BasicTextField(
-                        value = cardioDurationMins,
-                        onValueChange = { cardioDurationMins = it },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        textStyle = TextStyle(
-                            color = Color.Black,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Save Exercise Pill Button[cite: 23, 24]
+            // Save Exercise Pill Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -687,8 +760,8 @@ fun LogWorkoutScreen(
                             val finalSets = validSets.map { set ->
                                 if (!isKg) {
                                     val lbVal = set.weightKg.toDoubleOrNull() ?: 0.0
-                                    val convertedKg = String.format(java.util.Locale.US, "%.1f", lbVal * 0.45359237)
-                                    set.copy(weightKg = convertedKg)
+                                    val exactKg = lbVal * 0.45359237
+                                    set.copy(weightKg = String.format(Locale.US, "%.4f", exactKg))
                                 } else {
                                     set
                                 }
@@ -726,7 +799,7 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // Logged Exercises Header[cite: 23]
+        // Logged Exercises Header
         Text(
             text = "Logged Exercises",
             color = TextWhite,
@@ -764,18 +837,35 @@ fun LogWorkoutScreen(
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "${exercise.exerciseName} : $duration Mins",
                                 color = TextWhite,
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
                             )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            IconButton(
+                                onClick = { editingWorkout = exercise },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Cardio",
+                                    tint = PrimaryGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
                             IconButton(
                                 onClick = { viewModel.deleteLoggedExercise(exercise.id) },
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(28.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -798,18 +888,37 @@ fun LogWorkoutScreen(
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = exercise.exerciseName,
                                 color = TextWhite,
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
                             )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Edit Button
+                            IconButton(
+                                onClick = { editingWorkout = exercise },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Exercise",
+                                    tint = PrimaryGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            // Delete Button
                             IconButton(
                                 onClick = { viewModel.deleteLoggedExercise(exercise.id) },
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(28.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -825,9 +934,19 @@ fun LogWorkoutScreen(
                         exercise.sets.forEach { setItem ->
                             val displayWeight = if (!isKg) {
                                 val kgVal = setItem.weightKg.toDoubleOrNull() ?: 0.0
-                                String.format(java.util.Locale.US, "%.1f", kgVal * 2.20462)
+                                val lbVal = kgVal * 2.20462262
+                                if (abs(lbVal - round(lbVal)) < 0.05) {
+                                    round(lbVal).toInt().toString()
+                                } else {
+                                    String.format(Locale.US, "%.1f", lbVal)
+                                }
                             } else {
-                                setItem.weightKg
+                                val kgVal = setItem.weightKg.toDoubleOrNull() ?: 0.0
+                                if (abs(kgVal - round(kgVal)) < 0.05) {
+                                    round(kgVal).toInt().toString()
+                                } else {
+                                    String.format(Locale.US, "%.1f", kgVal)
+                                }
                             }
                             val unitLabel = if (isKg) "kg" else "lb"
 
@@ -867,5 +986,309 @@ fun LogWorkoutScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    // ================== EDIT SAVED EXERCISE DIALOG ==================
+    editingWorkout?.let { workoutToEdit ->
+        EditExerciseDialog(
+            workout = workoutToEdit,
+            isKg = isKg,
+            onDismiss = { editingWorkout = null },
+            onSave = { updatedWorkout ->
+                viewModel.deleteLoggedExercise(workoutToEdit.id)
+                viewModel.logExercise(
+                    exerciseName = updatedWorkout.exerciseName,
+                    category = updatedWorkout.category,
+                    sets = updatedWorkout.sets
+                )
+                editingWorkout = null
+                Toast.makeText(context, "Exercise updated successfully!", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+}
+
+@Composable
+private fun EditExerciseDialog(
+    workout: LoggedExercise,
+    isKg: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (LoggedExercise) -> Unit
+) {
+    val isCardio = workout.category.equals("Cardio", ignoreCase = true)
+    var editName by remember { mutableStateOf(workout.exerciseName) }
+    var editDuration by remember { mutableStateOf(workout.sets.firstOrNull()?.reps ?: "") }
+
+    var editableSets by remember {
+        mutableStateOf(
+            workout.sets.map { set ->
+                val weight = if (!isKg) {
+                    val kgVal = set.weightKg.toDoubleOrNull() ?: 0.0
+                    val lbVal = kgVal * 2.20462262
+                    if (abs(lbVal - round(lbVal)) < 0.05) round(lbVal).toInt().toString()
+                    else String.format(Locale.US, "%.1f", lbVal)
+                } else {
+                    val kgVal = set.weightKg.toDoubleOrNull() ?: 0.0
+                    if (abs(kgVal - round(kgVal)) < 0.05) round(kgVal).toInt().toString()
+                    else String.format(Locale.US, "%.1f", kgVal)
+                }
+                set.copy(weightKg = weight)
+            }
+        )
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color(0xFF161719))
+                .border(1.dp, CardBorderColor, RoundedCornerShape(22.dp))
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Edit Exercise",
+                    color = PrimaryGreen,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = TextWhite)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Exercise Name Field
+            Text("Exercise Name", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(PillGrayBg)
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                BasicTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (isCardio) {
+                Text("Duration (Mins)", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(PillGrayBg)
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    BasicTextField(
+                        value = editDuration,
+                        onValueChange = { editDuration = it },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                Text(
+                    text = if (isKg) "Sets & Weight (kg)" else "Sets & Weight (lb)",
+                    color = TextWhite,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    editableSets.forEachIndexed { idx, setItem ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${setItem.setNumber}",
+                                color = TextWhite,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.width(28.dp),
+                                textAlign = TextAlign.Center
+                            )
+
+                            // Weight input
+                            Box(
+                                modifier = Modifier
+                                    .weight(1.3f)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(PillGrayBg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                BasicTextField(
+                                    value = setItem.weightKg,
+                                    onValueChange = { newW ->
+                                        editableSets = editableSets.toMutableList().also {
+                                            it[idx] = it[idx].copy(weightKg = newW)
+                                        }
+                                    },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            // Reps input
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(PillGrayBg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                BasicTextField(
+                                    value = setItem.reps,
+                                    onValueChange = { newR ->
+                                        editableSets = editableSets.toMutableList().also {
+                                            it[idx] = it[idx].copy(reps = newR)
+                                        }
+                                    },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            // Delete Set
+                            IconButton(
+                                onClick = {
+                                    if (editableSets.size > 1) {
+                                        val m = editableSets.toMutableList()
+                                        m.removeAt(idx)
+                                        editableSets = m.mapIndexed { i, s -> s.copy(setNumber = i + 1) }
+                                    }
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Delete", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // + Add Set Button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFF0F1E16))
+                        .border(1.dp, CardBorderColor, RoundedCornerShape(18.dp))
+                        .clickable {
+                            val last = editableSets.lastOrNull()
+                            editableSets = editableSets + WorkoutSet(
+                                setNumber = editableSets.size + 1,
+                                weightKg = last?.weightKg ?: "",
+                                reps = last?.reps ?: ""
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("+ Add Set", color = PrimaryGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(Color(0xFF242528))
+                        .clickable { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Cancel", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(PrimaryGreen)
+                        .clickable {
+                            if (editName.isBlank()) return@clickable
+
+                            if (isCardio) {
+                                val updated = workout.copy(
+                                    exerciseName = editName.trim(),
+                                    sets = listOf(WorkoutSet(1, "0", editDuration.trim()))
+                                )
+                                onSave(updated)
+                            } else {
+                                val validSets = editableSets.filter { it.weightKg.isNotBlank() && it.reps.isNotBlank() }
+                                if (validSets.isEmpty()) return@clickable
+
+                                val normalizedSets = validSets.map { set ->
+                                    if (!isKg) {
+                                        val lbVal = set.weightKg.toDoubleOrNull() ?: 0.0
+                                        val exactKg = lbVal * 0.45359237
+                                        set.copy(weightKg = String.format(Locale.US, "%.4f", exactKg))
+                                    } else {
+                                        set
+                                    }
+                                }
+
+                                val updated = workout.copy(
+                                    exerciseName = editName.trim(),
+                                    sets = normalizedSets
+                                )
+                                onSave(updated)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Save Changes", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }

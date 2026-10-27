@@ -396,14 +396,14 @@ fun ProgressScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(110.dp))
+//                AppBottomNavigationBar(
+//                    currentRoute = Routes.PROGRESS,
+//                    onNavigate = onNavigate,
+//                    hazeState = hazeState
+//
+//                )
 
-                AppBottomNavigationBar(
-                    currentRoute = Routes.PROGRESS,
-                    onNavigate = onNavigate
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }

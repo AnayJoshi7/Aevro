@@ -193,7 +193,7 @@ fun Modifier.figmaDropShadow(
 
 fun Modifier.glassEffect(
     hazeState: HazeState? = null,
-    blurRadius: Dp = 24.dp,
+    blurRadius: Dp = 16.dp,
     cornerRadius: Dp = GlassDefaults.CornerRadius,
     tint: Color = GlassDefaults.SurfaceTint,
     shadowEnabled: Boolean = true,
@@ -297,7 +297,7 @@ fun Modifier.glassSurface(
 fun GlassCard(
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
-    blurRadius: Dp = 24.dp,
+    blurRadius: Dp = 16.dp,
     cornerRadius: Dp = GlassDefaults.CornerRadius,
     contentPadding: PaddingValues = GlassDefaults.ContentPadding,
     tint: Color = GlassDefaults.SurfaceTint,

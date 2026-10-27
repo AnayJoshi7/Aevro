@@ -6,7 +6,7 @@ object ExerciseRepository {
         "Incline barbell press",
         "Incline dumbbell press",
         "Incline machine press",
-        "Flat barbell press",
+        "Bench Press",
         "Flat dumbbell press",
         "Incline chest press",
         "Chest fly",
@@ -52,6 +52,7 @@ object ExerciseRepository {
         // Abs
         "Half crunches",
         "Full crunches",
-        "Leg raises"
+        "Leg raises",
+        "Reverse crunches"
     ).sorted()
 }

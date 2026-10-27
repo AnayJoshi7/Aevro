@@ -273,19 +273,19 @@ fun WorkoutScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             HorizontalDivider(
-                color = Color(0xFF8E9094).copy(alpha = 0.5f),
+                color = Color(0xFFFFFFFF).copy(alpha = 0.5f),
                 thickness = 1.dp,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(110.dp))
+//            AppBottomNavigationBar(
+//                currentRoute = Routes.WORKOUTS,
+//                onNavigate = onNavigate,
+//                hazeState = hazeState
+//
+//            )
 
-            AppBottomNavigationBar(
-                currentRoute = Routes.WORKOUTS,
-                onNavigate = onNavigate
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }

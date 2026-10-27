@@ -206,20 +206,16 @@ fun SplashScreen(
                                 return@Button
                             }
                             isLoading = true
-                            viewModel.login(
-                                username = username.trim(),
-                                onSuccess = {
-                                    isLoading = false
+                            viewModel.login(username.trim()) { success ->
+                                isLoading = false
+                                if (success) {
                                     onLoginSuccess()
-                                },
-                                onError = { err ->
-                                    isLoading = false
-                                    Toast.makeText(context, err, Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "User not found or login failed", Toast.LENGTH_SHORT).show()
                                 }
-                            )
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0x803ddc84)),
-
                         shape = RoundedCornerShape(20.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -228,7 +224,6 @@ fun SplashScreen(
                                 Color(0xFF3ddc84).copy(alpha = 0.5f),
                                 RoundedCornerShape(20.dp)
                             )
-
                             .height(50.dp),
                         enabled = !isLoading
                     ) {

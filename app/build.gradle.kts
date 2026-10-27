@@ -6,6 +6,7 @@ plugins {
     id("com.google.gms.google-services")
 }
 android {
+    ndkVersion = "27.0.12077973"
     namespace = "com.anay.fitnesstracker"
     compileSdk {
         version = release(37)
@@ -16,7 +17,7 @@ android {
         minSdk = 30
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0.2"
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,8 +39,15 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.compose.animation.core)
+    // CameraX
+    val cameraxVersion = "1.3.4"
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
     implementation("dev.chrisbanes.haze:haze:1.6.10")
-
+    implementation("androidx.camera:camera-core:1.4.0")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.10.0")
     implementation(platform(libs.androidx.compose.bom))
@@ -60,8 +68,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
     implementation("com.google.firebase:firebase-firestore")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
-    // Firebase BoM & Firestore
-
+    implementation("com.google.firebase:firebase-auth")
 
     // Lifecycle & Navigation
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
