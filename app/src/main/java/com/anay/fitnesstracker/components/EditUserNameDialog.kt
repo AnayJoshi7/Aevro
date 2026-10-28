@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
-import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel.UsernameCheckState
+import com.anay.fitnesstracker.data.viewmodel.UsernameCheckState
 private val CardBorderColor = Color(0xFF3DDC84).copy(alpha = 0.20f)
 private val DialogDarkBg = Color(0xFF161719)
 private val PillGrayBg = Color(0xFFAEB2B0)
@@ -44,7 +44,7 @@ fun EditUsernameDialog(
     var inputUsername by remember { mutableStateOf(currentUsername.removePrefix("@")) }
     val checkState by viewModel.usernameCheckState.collectAsState()
     var isSaving by remember { mutableStateOf(false) }
-    val isAvailable = checkState is FitnessViewModel.UsernameCheckState.Available || checkState == FitnessViewModel.UsernameCheckState.Available
+    val isAvailable = checkState is UsernameCheckState.Available || checkState == UsernameCheckState.Available
     val isChanged = inputUsername.trim().lowercase() != currentUsername.trim().lowercase().removePrefix("@")
     val canSave = isAvailable && isChanged && !isSaving
 

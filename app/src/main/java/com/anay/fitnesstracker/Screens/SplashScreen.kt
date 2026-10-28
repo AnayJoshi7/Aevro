@@ -48,10 +48,37 @@ fun SplashScreen(
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    // Observe session restore state
+    val isSessionChecking by viewModel.isSessionChecking.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
+
+    // Auto-navigate if a valid session is already loaded
+    LaunchedEffect(isSessionChecking, currentUser) {
+        if (!isSessionChecking && currentUser != null) {
+            onLoginSuccess()
+        }
+    }
+
+    // While checking SharedPreferences and Firestore on startup, show a subtle loading spinner
+    if (isSessionChecking) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .appBackgroundGradient(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = PrimaryGreen,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(36.dp)
+            )
+        }
+        return
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -132,8 +159,6 @@ fun SplashScreen(
                             blurRadius = 24.dp,
                             shadowEnabled = true
                         )
-
-
                         .padding(horizontal = 18.dp, vertical = 22.dp)
                 ) {
                     // Typable Username Field
@@ -148,7 +173,6 @@ fun SplashScreen(
                                 Color(0xFFFFFFFF).copy(alpha = 0.5f),
                                 RoundedCornerShape(16.dp)
                             )
-
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
@@ -269,7 +293,6 @@ fun SplashScreen(
                             blurRadius = 24.dp,
                             shadowEnabled = true
                         )
-
                         .clickable { onNavigateSignUp() },
                     contentAlignment = Alignment.Center
                 ) {

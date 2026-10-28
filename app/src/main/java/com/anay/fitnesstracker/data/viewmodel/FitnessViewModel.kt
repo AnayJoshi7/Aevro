@@ -5,36 +5,25 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.anay.fitnesstracker.data.*
-import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import com.anay.fitnesstracker.components.*
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import com.anay.fitnesstracker.data.*
+import com.anay.fitnesstracker.data.SessionManager
 import com.anay.fitnesstracker.data.repository.ExerciseRepository
+import com.anay.fitnesstracker.data.repository.FoodLookupRepository
 import com.anay.fitnesstracker.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.toObject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
-import com.anay.fitnesstracker.data.repository.FoodLookupRepository
-import com.google.firebase.firestore.toObject
-import kotlinx.coroutines.flow.asStateFlow
-import com.anay.fitnesstracker.data.FoodItem
-import com.google.firebase.firestore.auth.User
 
 sealed class UsernameCheckState {
     object Idle : UsernameCheckState()
@@ -45,7 +34,6 @@ sealed class UsernameCheckState {
 
 class FitnessViewModel(application: Application) : AndroidViewModel(application) {
     private val db = FirebaseFirestore.getInstance().apply {
-        // Guarantee local disk cache is enabled so data is preserved even offline
         firestoreSettings = FirebaseFirestoreSettings.Builder()
             .setPersistenceEnabled(true)
             .build()
@@ -65,11 +53,135 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     val isSessionChecking: StateFlow<Boolean> = _isSessionChecking.asStateFlow()
 
     private var userSnapshotListener: ListenerRegistration? = null
+
     private val _pendingScannedFood = MutableStateFlow<FoodItem?>(null)
     val pendingScannedFood: StateFlow<FoodItem?> = _pendingScannedFood.asStateFlow()
+
     private var debounceJob: Job? = null
     private val _usernameCheckState = MutableStateFlow<UsernameCheckState>(UsernameCheckState.Idle)
     val usernameCheckState: StateFlow<UsernameCheckState> = _usernameCheckState.asStateFlow()
+
+    private val _foodsList = MutableStateFlow<List<FoodItem>>(emptyList())
+    val foodsList: StateFlow<List<FoodItem>> = _foodsList.asStateFlow()
+
+    init {
+        checkSavedSession()
+        loadFoodsCollection()
+    }
+
+    // --- Session & Realtime Sync Management ---
+
+    private fun checkSavedSession() {
+        val savedUsername = sessionManager.getUsername()
+        if (!savedUsername.isNullOrBlank()) {
+            val trimmed = savedUsername.trim()
+            val lower = trimmed.lowercase()
+
+            viewModelScope.launch {
+                try {
+                    // Try exact first, then lowercase
+                    var doc = db.collection("users").document(trimmed).get().await()
+                    if (!doc.exists()) {
+                        doc = db.collection("users").document(lower).get().await()
+                    }
+
+                    if (doc.exists()) {
+                        val validId = doc.id
+                        attachUserListener(validId)
+                    } else {
+                        // Stale or deleted user account
+                        sessionManager.clearSession()
+                        _isSessionChecking.value = false
+                    }
+                } catch (e: Exception) {
+                    Log.w("FitnessVM", "Could not check server session, attempting cached listener: ${e.message}")
+                    // Attempt to attach anyway for offline cache support
+                    attachUserListener(trimmed)
+                }
+            }
+        } else {
+            _isSessionChecking.value = false
+        }
+    }
+
+    private fun attachUserListener(documentId: String) {
+        userSnapshotListener?.remove()
+        userSnapshotListener = db.collection("users").document(documentId)
+            .addSnapshotListener { snapshot, error ->
+                _isSessionChecking.value = false
+                if (error != null) {
+                    Log.w("FitnessViewModel", "Firestore listener notice: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        val profile = snapshot.toObject(UserProfile::class.java)
+                        _currentUser.value = profile
+                    } catch (e: Exception) {
+                        Log.e("FitnessViewModel", "Deserialization error", e)
+                    }
+                }
+            }
+    }
+
+    fun login(username: String, onComplete: (Boolean) -> Unit) {
+        val rawInput = username.trim().removePrefix("@")
+        val lowerInput = rawInput.lowercase()
+
+        viewModelScope.launch {
+            try {
+                // 1. Try exact document ID
+                var doc = db.collection("users").document(rawInput).get().await()
+
+                // 2. Try lowercase document ID
+                if (!doc.exists()) {
+                    doc = db.collection("users").document(lowerInput).get().await()
+                }
+
+                // 3. Try querying username field
+                if (!doc.exists()) {
+                    val querySnapshot = db.collection("users")
+                        .whereEqualTo("username", rawInput)
+                        .limit(1)
+                        .get()
+                        .await()
+                    doc = querySnapshot.documents.firstOrNull() ?: doc
+                }
+
+                if (doc.exists()) {
+                    val loadedUser = doc.toObject<UserProfile>()
+                    val actualDocId = doc.id
+
+                    _currentUser.value = loadedUser
+
+                    // Persist session to local storage
+                    sessionManager.saveUsername(actualDocId)
+
+                    // Attach realtime snapshot listener
+                    attachUserListener(actualDocId)
+
+                    onComplete(true)
+                } else {
+                    Log.e("FitnessVM", "User document not found for $rawInput or $lowerInput")
+                    onComplete(false)
+                }
+            } catch (e: Exception) {
+                Log.e("FitnessVM", "Login failed: ${e.message}", e)
+                onComplete(false)
+            }
+        }
+    }
+
+    fun logout(onLoggedOut: () -> Unit) {
+        userSnapshotListener?.remove()
+        userSnapshotListener = null
+        sessionManager.clearSession()
+        _currentUser.value = null
+        resetUsernameCheckState()
+        onLoggedOut()
+    }
+
+    // --- Username Availability & Migration ---
 
     fun resetUsernameCheckState() {
         _usernameCheckState.value = UsernameCheckState.Idle
@@ -99,7 +211,6 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
-        // If it's unchanged, disallow or mark idle
         if (clean == current) {
             _usernameCheckState.value = UsernameCheckState.Unavailable("This is already your current username")
             return
@@ -108,19 +219,13 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         _usernameCheckState.value = UsernameCheckState.Checking
 
         debounceJob = viewModelScope.launch {
-            delay(300) // 300ms debounce
+            delay(300)
             try {
-                val firestore = FirebaseFirestore.getInstance()
-                val querySnapshot = firestore.collection("users")
-                    .whereEqualTo("username", clean)
-                    .get()
-                    .await()
+                // Check if target document exists
+                val targetDoc = db.collection("users").document(clean).get().await()
+                val currentDocId = currentUser.value?.username?.trim()?.lowercase()
 
-                // Also check for case-insensitive matches if needed
-                val matchingDoc = querySnapshot.documents.firstOrNull()
-                val myId = currentUser.value?.username
-
-                if (matchingDoc != null && matchingDoc.id != myId) {
+                if (targetDoc.exists() && targetDoc.id != currentDocId) {
                     _usernameCheckState.value = UsernameCheckState.Unavailable("Username is already taken")
                 } else {
                     _usernameCheckState.value = UsernameCheckState.Available
@@ -140,13 +245,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val currentUserData = currentUser.value ?: return
 
-        // 1. Keep the exact current document ID so Firestore can locate and delete it
         val oldDocId = currentUserData.username.trim()
-
-        // 2. Preserve exact display casing for the UI
         val displayUsername = newUsername.trim().removePrefix("@")
-
-        // 3. Normalized lowercase document ID for reliable lookups
         val newDocId = displayUsername.lowercase()
 
         if (newDocId.isBlank()) {
@@ -160,22 +260,20 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch {
-            val firestore = FirebaseFirestore.getInstance()
             try {
-                // Check if another user already owns this lowercase document ID
-                val targetDoc = firestore.collection("users").document(newDocId).get().await()
+                // Check if target ID is taken
+                val targetDoc = db.collection("users").document(newDocId).get().await()
                 if (targetDoc.exists() && newDocId != oldDocId.lowercase()) {
                     onError("Username is already taken")
                     return@launch
                 }
 
-                // Fetch the existing document using its EXACT original ID
-                var sourceDoc = firestore.collection("users").document(oldDocId).get().await()
+                // Fetch original document
+                var sourceDoc = db.collection("users").document(oldDocId).get().await()
                 var actualExistingDocId = oldDocId
 
-                // Fallback: if not found with exact casing, try lowercase
                 if (!sourceDoc.exists()) {
-                    val fallbackDoc = firestore.collection("users").document(oldDocId.lowercase()).get().await()
+                    val fallbackDoc = db.collection("users").document(oldDocId.lowercase()).get().await()
                     if (fallbackDoc.exists()) {
                         sourceDoc = fallbackDoc
                         actualExistingDocId = oldDocId.lowercase()
@@ -186,25 +284,25 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
                 }
 
                 val data = sourceDoc.data?.toMutableMap() ?: mutableMapOf()
-
-                // Store the display username with preferred casing
                 data["username"] = displayUsername
 
-                val batch = firestore.batch()
-                val newDocRef = firestore.collection("users").document(newDocId)
+                val batch = db.batch()
+                val newDocRef = db.collection("users").document(newDocId)
                 batch.set(newDocRef, data)
 
-                // Delete the old document using its exact discovered ID
                 if (actualExistingDocId != newDocId) {
-                    val oldDocRef = firestore.collection("users").document(actualExistingDocId)
+                    val oldDocRef = db.collection("users").document(actualExistingDocId)
                     batch.delete(oldDocRef)
                 }
 
                 batch.commit().await()
 
-                // Update local state
+                // Update session & listener to point to new doc ID
+                sessionManager.saveUsername(newDocId)
+                attachUserListener(newDocId)
+
                 _currentUser.value = currentUserData.copy(username = displayUsername)
-                _usernameCheckState.value = FitnessViewModel.UsernameCheckState.Idle
+                _usernameCheckState.value = UsernameCheckState.Idle
 
                 onSuccess()
             } catch (e: Exception) {
@@ -213,6 +311,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+
+    // --- Account Deletion ---
 
     fun deleteAccount(
         onSuccess: () -> Unit,
@@ -226,21 +326,20 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         val docId = currentUserData.username.trim()
 
         viewModelScope.launch {
-            val firestore = FirebaseFirestore.getInstance()
             try {
-                // 1. Try deleting with exact casing
-                val userRef = firestore.collection("users").document(docId)
+                val userRef = db.collection("users").document(docId)
                 val doc = userRef.get().await()
 
                 if (doc.exists()) {
                     userRef.delete().await()
                 } else {
-                    // Fallback to lowercase document ID if casing differed
-                    val lowerRef = firestore.collection("users").document(docId.lowercase())
+                    val lowerRef = db.collection("users").document(docId.lowercase())
                     lowerRef.delete().await()
                 }
 
-                // 2. Clear state
+                userSnapshotListener?.remove()
+                userSnapshotListener = null
+                sessionManager.clearSession()
                 _currentUser.value = null
                 resetUsernameCheckState()
 
@@ -251,130 +350,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-    sealed class UsernameCheckState {
-        object Idle : UsernameCheckState()
-        object Checking : UsernameCheckState()
-        object Available : UsernameCheckState()
-        data class Unavailable(val message: String) : UsernameCheckState()
-    }
-    fun setPendingScannedFood(food: FoodItem) {
-        _pendingScannedFood.value = food
-    }
 
-    fun clearPendingScannedFood() {
-        _pendingScannedFood.value = null
-    }
-
-
-    init {
-        checkSavedSession()
-    }
-    // In FitnessViewModel.kt
-    private val _foodsList = MutableStateFlow<List<FoodItem>>(emptyList())
-    val foodsList: StateFlow<List<FoodItem>> = _foodsList.asStateFlow()
-
-    init {
-        loadFoodsCollection()
-    }
-
-    fun loadFoodsCollection() {
-        db.collection("foods").get()
-            .addOnSuccessListener { snapshot ->
-                val items = snapshot.documents.mapNotNull { doc ->
-                    val id = doc.getString("id") ?: doc.id
-                    val name = doc.getString("name") ?: return@mapNotNull null
-                    val servingBasis = doc.getString("servingBasis") ?: "100 g"
-                    val calories = (doc.get("calories") as? Number)?.toDouble() ?: 0.0
-                    val protein = (doc.get("protein") as? Number)?.toDouble() ?: 0.0
-                    val carbohydrates = (doc.get("carbohydrates") as? Number)?.toDouble() ?: 0.0
-                    val fat = (doc.get("fat") as? Number)?.toDouble() ?: 0.0
-                    FoodItem(id, name, servingBasis, calories, protein, carbohydrates, fat)
-                }
-                _foodsList.value = items.sortedBy { it.name }
-            }
-    }
-    fun deleteMeal(mealId: String) {
-        val user = _currentUser.value ?: return
-        val updatedMeals = user.meals.filterNot { it.id == mealId }
-        val updatedUser = user.copy(meals = updatedMeals)
-        _currentUser.value = updatedUser
-
-        db.collection("users").document(user.username)
-            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
-    }
-
-    fun updateDailyCalorieGoal(newGoal: Int) {
-        val user = _currentUser.value ?: return
-        val updatedUser = user.copy(dailyCalorieGoal = newGoal)
-        _currentUser.value = updatedUser
-
-        db.collection("users").document(user.username)
-            .set(mapOf("dailyCalorieGoal" to newGoal), SetOptions.merge())
-    }
-
-    fun saveCompleteMeal(
-        mealName: String,
-        totalCalories: Int,
-        totalProtein: Double,
-        totalCarbs: Double,
-        totalFat: Double,
-        items: List<MealItemEntry>,
-        onComplete: () -> Unit
-    ) {
-        val user = _currentUser.value ?: return
-        val newMeal = Meal(
-            id = UUID.randomUUID().toString(),
-            name = mealName.ifBlank { "Meal" },
-            calories = totalCalories,
-            protein = totalProtein,
-            carbs = totalCarbs,
-            fat = totalFat,
-            timestamp = System.currentTimeMillis(),
-            items = items
-        )
-        val updatedMeals = user.meals + newMeal
-        val updatedUser = user.copy(meals = updatedMeals)
-        _currentUser.value = updatedUser
-
-        db.collection("users").document(user.username)
-            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
-            .addOnSuccessListener { onComplete() }
-    }
-
-    private fun checkSavedSession() {
-        val savedUsername = sessionManager.getUsername()
-        if (!savedUsername.isNullOrEmpty()) {
-            attachUserListener(savedUsername)
-        } else {
-            _isSessionChecking.value = false
-        }
-    }
-
-    // Listens to local cache first, then syncs with server when available
-    private fun attachUserListener(username: String) {
-        userSnapshotListener?.remove()
-        userSnapshotListener = db.collection("users").document(username)
-            .addSnapshotListener { snapshot, error ->
-                _isSessionChecking.value = false
-                if (error != null) {
-                    Log.w("FitnessViewModel", "Firestore listener notice: ${error.message}")
-                    return@addSnapshotListener
-                }
-                if (snapshot != null && snapshot.exists()) {
-                    try {
-                        val profile = snapshot.toObject(UserProfile::class.java)
-                        _currentUser.value = profile
-                    } catch (e: Exception) {
-                        Log.e("FitnessViewModel", "Deserialization error", e)
-                    }
-                }
-            }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        userSnapshotListener?.remove()
-    }
+    // --- Onboarding & Profile Setup ---
 
     fun updateInitialDetails(
         name: String,
@@ -400,98 +377,6 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             bmiCategory = cat,
             maintenanceCalories = maintCal
         )
-    }
-
-    fun getStartOfTodayMillis(): Long {
-        return java.time.LocalDate.now()
-            .atStartOfDay(java.time.ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-    }
-
-    // 1. Delete a Meal
-
-
-    // 2. Log Exercise (Safe against offline / UnknownHostException)
-    fun logExercise(exerciseName: String, category: String = "", sets: List<WorkoutSet>) {
-        val user = _currentUser.value ?: return
-        val newEntry = LoggedExercise(
-            id = UUID.randomUUID().toString(),
-            category = category,
-            exerciseName = exerciseName,
-            sets = sets,
-            timestamp = System.currentTimeMillis()
-        )
-
-        val updatedWorkouts = listOf(newEntry) + user.loggedWorkouts
-        val newNotification = NotificationItem(
-            id = UUID.randomUUID().toString(),
-            message = "Logged: $exerciseName (${sets.size} sets)",
-            timestamp = System.currentTimeMillis()
-        )
-        val updatedNotifs = listOf(newNotification) + user.notifications
-
-        val updatedUser = user.copy(
-            loggedWorkouts = updatedWorkouts,
-            notifications = updatedNotifs
-        )
-        _currentUser.value = updatedUser
-
-        // Clean Map serialization to prevent ApiUtil.invoke crash:
-        val workoutsPayload = updatedWorkouts.map { exercise ->
-            mapOf(
-                "id" to exercise.id,
-                "category" to exercise.category,
-                "exerciseName" to exercise.exerciseName,
-                "timestamp" to exercise.timestamp,
-                "sets" to exercise.sets.map { s ->
-                    mapOf(
-                        "setNumber" to s.setNumber,
-                        "weightKg" to s.weightKg,
-                        "reps" to s.reps
-                    )
-                }
-            )
-        }
-
-        val notifsPayload = updatedNotifs.map { notif ->
-            mapOf(
-                "id" to notif.id,
-                "message" to notif.message,
-                "timestamp" to notif.timestamp
-            )
-        }
-
-        // Write directly to local Firestore SQLite cache (no .await() to block if DNS is offline)
-        db.collection("users").document(user.username)
-            .set(
-                mapOf(
-                    "loggedWorkouts" to workoutsPayload,
-                    "notifications" to notifsPayload
-                ),
-                SetOptions.merge()
-            )
-            .addOnSuccessListener {
-                Log.d("FitnessViewModel", "Workout saved to Firestore!")
-            }
-            .addOnFailureListener { e ->
-                Log.w("FitnessViewModel", "Write queued locally: ${e.message}")
-            }
-    }
-
-    fun logExercise(exerciseName: String, sets: List<WorkoutSet>) {
-        logExercise(exerciseName = exerciseName, category = "", sets = sets)
-    }
-
-    // 3. Delete a Logged Exercise Entry
-    fun deleteLoggedExercise(exerciseId: String) {
-        val user = _currentUser.value ?: return
-        val updatedWorkouts = user.loggedWorkouts.filter { it.id != exerciseId }
-        val updatedUser = user.copy(loggedWorkouts = updatedWorkouts)
-        _currentUser.value = updatedUser
-
-        db.collection("users").document(user.username)
-            .set(mapOf("loggedWorkouts" to updatedWorkouts), SetOptions.merge())
     }
 
     fun updateGoal(goal: String) {
@@ -529,81 +414,20 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             timestamp = System.currentTimeMillis()
         )
         val profile = _tempOnboarding.value.copy(notifications = listOf(initialNotification))
+        val docId = profile.username.trim().lowercase()
 
-        sessionManager.saveUsername(profile.username)
+        sessionManager.saveUsername(docId)
         _currentUser.value = profile
-        attachUserListener(profile.username)
+        attachUserListener(docId)
 
-        db.collection("users").document(profile.username)
+        db.collection("users").document(docId)
             .set(profile)
             .addOnCompleteListener {
                 onComplete()
             }
     }
 
-    fun login(username: String, onComplete: (Boolean) -> Unit) {
-        val rawInput = username.trim().removePrefix("@")
-        val lowerInput = rawInput.lowercase()
-
-        viewModelScope.launch {
-            try {
-                val firestore = FirebaseFirestore.getInstance()
-
-                var doc = firestore.collection("users").document(rawInput).get().await()
-
-                if (!doc.exists()) {
-                    doc = firestore.collection("users").document(lowerInput).get().await()
-                }
-
-                if (!doc.exists()) {
-                    val querySnapshot = firestore.collection("users")
-                        .whereEqualTo("username", rawInput)
-                        .limit(1)
-                        .get()
-                        .await()
-                    doc = querySnapshot.documents.firstOrNull() ?: doc
-                }
-
-                if (doc.exists()) {
-                    val loadedUser = doc.toObject<UserProfile>()
-                    _currentUser.value = loadedUser
-                    onComplete(true)
-                } else {
-                    Log.e("FitnessVM", "User document not found for $rawInput or $lowerInput")
-                    onComplete(false)
-                }
-            } catch (e: Exception) {
-                Log.e("FitnessVM", "Login failed: ${e.message}", e)
-                onComplete(false)
-            }
-        }
-    }
-
-    fun updateWorkoutPreferences(frequency: String, split: String) {
-        val user = _currentUser.value ?: return
-        val updatedUser = user.copy(
-            workoutFrequency = frequency,
-            workoutSplit = split
-        )
-        _currentUser.value = updatedUser
-
-        db.collection("users").document(user.username)
-            .set(
-                mapOf(
-                    "workoutFrequency" to frequency,
-                    "workoutSplit" to split
-                ),
-                SetOptions.merge()
-            )
-    }
-
-    fun logout(onLoggedOut: () -> Unit) {
-        userSnapshotListener?.remove()
-        userSnapshotListener = null
-        sessionManager.clearSession()
-        _currentUser.value = null
-        onLoggedOut()
-    }
+    // --- Profile & Nutrition Edits ---
 
     fun updateProfile(
         name: String,
@@ -626,7 +450,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         _currentUser.value = updated
 
-        db.collection("users").document(current.username)
+        val docId = current.username.trim().lowercase()
+        db.collection("users").document(docId)
             .set(updated, SetOptions.merge())
     }
 
@@ -638,11 +463,123 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         _currentUser.value = updated
 
-        db.collection("users").document(user.username)
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
             .set(
                 mapOf(
                     "dailyCalorieGoal" to calories,
                     "dailyProteinGoal" to protein
+                ),
+                SetOptions.merge()
+            )
+    }
+
+    fun updateDailyCalorieGoal(newGoal: Int) {
+        val user = _currentUser.value ?: return
+        val updatedUser = user.copy(dailyCalorieGoal = newGoal)
+        _currentUser.value = updatedUser
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf("dailyCalorieGoal" to newGoal), SetOptions.merge())
+    }
+
+    // --- Workout Logging & Management ---
+
+    fun logExercise(exerciseName: String, category: String = "", sets: List<WorkoutSet>) {
+        val user = _currentUser.value ?: return
+        val newEntry = LoggedExercise(
+            id = UUID.randomUUID().toString(),
+            category = category,
+            exerciseName = exerciseName,
+            sets = sets,
+            timestamp = System.currentTimeMillis()
+        )
+
+        val updatedWorkouts = listOf(newEntry) + user.loggedWorkouts
+        val newNotification = NotificationItem(
+            id = UUID.randomUUID().toString(),
+            message = "Logged: $exerciseName (${sets.size} sets)",
+            timestamp = System.currentTimeMillis()
+        )
+        val updatedNotifs = listOf(newNotification) + user.notifications
+
+        val updatedUser = user.copy(
+            loggedWorkouts = updatedWorkouts,
+            notifications = updatedNotifs
+        )
+        _currentUser.value = updatedUser
+
+        val workoutsPayload = updatedWorkouts.map { exercise ->
+            mapOf(
+                "id" to exercise.id,
+                "category" to exercise.category,
+                "exerciseName" to exercise.exerciseName,
+                "timestamp" to exercise.timestamp,
+                "sets" to exercise.sets.map { s ->
+                    mapOf(
+                        "setNumber" to s.setNumber,
+                        "weightKg" to s.weightKg,
+                        "reps" to s.reps
+                    )
+                }
+            )
+        }
+
+        val notifsPayload = updatedNotifs.map { notif ->
+            mapOf(
+                "id" to notif.id,
+                "message" to notif.message,
+                "timestamp" to notif.timestamp
+            )
+        }
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(
+                mapOf(
+                    "loggedWorkouts" to workoutsPayload,
+                    "notifications" to notifsPayload
+                ),
+                SetOptions.merge()
+            )
+            .addOnSuccessListener {
+                Log.d("FitnessViewModel", "Workout saved to Firestore!")
+            }
+            .addOnFailureListener { e ->
+                Log.w("FitnessViewModel", "Write queued locally: ${e.message}")
+            }
+    }
+
+    fun logExercise(exerciseName: String, sets: List<WorkoutSet>) {
+        logExercise(exerciseName = exerciseName, category = "", sets = sets)
+    }
+
+    fun deleteLoggedExercise(exerciseId: String) {
+        val user = _currentUser.value ?: return
+        val updatedWorkouts = user.loggedWorkouts.filter { it.id != exerciseId }
+        val updatedUser = user.copy(loggedWorkouts = updatedWorkouts)
+        _currentUser.value = updatedUser
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf("loggedWorkouts" to updatedWorkouts), SetOptions.merge())
+    }
+
+    fun updateWorkoutPreferences(frequency: String, split: String) {
+        val user = _currentUser.value ?: return
+        val updatedUser = user.copy(
+            workoutFrequency = frequency,
+            workoutSplit = split
+        )
+        _currentUser.value = updatedUser
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(
+                mapOf(
+                    "workoutFrequency" to frequency,
+                    "workoutSplit" to split
                 ),
                 SetOptions.merge()
             )
@@ -662,7 +599,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         val updated = user.copy(customSchedule = daysList)
         _currentUser.value = updated
 
-        db.collection("users").document(user.username)
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
             .set(mapOf("customSchedule" to daysList), SetOptions.merge())
     }
 
@@ -690,7 +628,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         val updated = user.copy(customSchedule = daysList, customExercises = customExList)
         _currentUser.value = updated
 
-        db.collection("users").document(user.username)
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
             .set(
                 mapOf(
                     "customSchedule" to daysList,
@@ -711,7 +650,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             val updated = user.copy(customSchedule = daysList)
             _currentUser.value = updated
 
-            db.collection("users").document(user.username)
+            val docId = user.username.trim().lowercase()
+            db.collection("users").document(docId)
                 .set(mapOf("customSchedule" to daysList), SetOptions.merge())
         }
     }
@@ -727,19 +667,45 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             CustomDayWorkout(dayName = it, muscleGroup = "")
         }
     }
+
+    // --- Meals & Nutrition Tracking ---
+
+    fun loadFoodsCollection() {
+        db.collection("foods").get()
+            .addOnSuccessListener { snapshot ->
+                val items = snapshot.documents.mapNotNull { doc ->
+                    val id = doc.getString("id") ?: doc.id
+                    val name = doc.getString("name") ?: return@mapNotNull null
+                    val servingBasis = doc.getString("servingBasis") ?: "100 g"
+                    val calories = (doc.get("calories") as? Number)?.toDouble() ?: 0.0
+                    val protein = (doc.get("protein") as? Number)?.toDouble() ?: 0.0
+                    val carbohydrates = (doc.get("carbohydrates") as? Number)?.toDouble() ?: 0.0
+                    val fat = (doc.get("fat") as? Number)?.toDouble() ?: 0.0
+                    FoodItem(id, name, servingBasis, calories, protein, carbohydrates, fat)
+                }
+                _foodsList.value = items.sortedBy { it.name }
+            }
+    }
+
     fun lookupFoodByBarcode(barcode: String, onResult: (FoodItem?) -> Unit) {
-        // 1. Check if the barcode matches any item in local Firestore collection
         val localMatch = _foodsList.value.firstOrNull { it.id.equals(barcode, ignoreCase = true) }
         if (localMatch != null) {
             onResult(localMatch)
             return
         }
 
-        // 2. Query Open Food Facts public database
         viewModelScope.launch {
             val remoteItem = FoodLookupRepository.fetchProductByBarcode(barcode)
             onResult(remoteItem)
         }
+    }
+
+    fun setPendingScannedFood(food: FoodItem) {
+        _pendingScannedFood.value = food
+    }
+
+    fun clearPendingScannedFood() {
+        _pendingScannedFood.value = null
     }
 
     fun addMeal(
@@ -779,8 +745,8 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         )
         _currentUser.value = updatedUser
 
-        // Persist to Firestore
-        db.collection("users").document(user.username)
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
             .set(
                 mapOf(
                     "meals" to updatedMeals,
@@ -793,4 +759,56 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
             }
     }
 
+    fun saveCompleteMeal(
+        mealName: String,
+        totalCalories: Int,
+        totalProtein: Double,
+        totalCarbs: Double,
+        totalFat: Double,
+        items: List<MealItemEntry>,
+        onComplete: () -> Unit
+    ) {
+        val user = _currentUser.value ?: return
+        val newMeal = Meal(
+            id = UUID.randomUUID().toString(),
+            name = mealName.ifBlank { "Meal" },
+            calories = totalCalories,
+            protein = totalProtein,
+            carbs = totalCarbs,
+            fat = totalFat,
+            timestamp = System.currentTimeMillis(),
+            items = items
+        )
+        val updatedMeals = user.meals + newMeal
+        val updatedUser = user.copy(meals = updatedMeals)
+        _currentUser.value = updatedUser
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
+            .addOnSuccessListener { onComplete() }
+    }
+
+    fun deleteMeal(mealId: String) {
+        val user = _currentUser.value ?: return
+        val updatedMeals = user.meals.filterNot { it.id == mealId }
+        val updatedUser = user.copy(meals = updatedMeals)
+        _currentUser.value = updatedUser
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf("meals" to updatedMeals), SetOptions.merge())
+    }
+
+    fun getStartOfTodayMillis(): Long {
+        return java.time.LocalDate.now()
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        userSnapshotListener?.remove()
+    }
 }
