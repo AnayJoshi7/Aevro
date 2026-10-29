@@ -303,7 +303,7 @@ fun WorkoutDayClickableCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         hazeState = hazeState,
-        blurRadius = 24.dp,
+        blurRadius = 16.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Row(
@@ -358,7 +358,7 @@ private fun ActionPillButton(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         hazeState = hazeState,
-        blurRadius = 24.dp,
+        blurRadius = 16.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Row(

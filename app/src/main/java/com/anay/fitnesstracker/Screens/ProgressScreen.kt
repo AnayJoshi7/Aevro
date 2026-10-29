@@ -127,7 +127,6 @@ fun ProgressScreen(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .hazeSource(state = hazeState)
                 .appBackgroundGradient()
         )
 
@@ -135,6 +134,8 @@ fun ProgressScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(state = hazeState)
+
                 .statusBarsPadding()
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.Start
@@ -167,7 +168,7 @@ fun ProgressScreen(
                         .fillMaxWidth()
                         .glassEffect(
                             hazeState = hazeState,
-                            blurRadius = 24.dp,
+                            blurRadius = 16.dp,
                             shadowEnabled = true
                         )
                         .padding(22.dp)
@@ -260,7 +261,7 @@ fun ProgressScreen(
                         .glassEffect(
                             hazeState = hazeState,
 
-                            blurRadius = 24.dp,
+                            blurRadius = 16.dp,
                             shadowEnabled = true
                         )
                         .padding(22.dp)

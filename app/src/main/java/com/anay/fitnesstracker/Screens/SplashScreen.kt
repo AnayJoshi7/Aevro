@@ -156,7 +156,7 @@ fun SplashScreen(
                         .fillMaxWidth()
                         .glassEffect(
                             hazeState = hazeState,
-                            blurRadius = 24.dp,
+                            blurRadius = 16.dp,
                             shadowEnabled = true
                         )
                         .padding(horizontal = 18.dp, vertical = 22.dp)
@@ -290,7 +290,7 @@ fun SplashScreen(
                         .height(56.dp)
                         .glassEffect(
                             hazeState = hazeState,
-                            blurRadius = 24.dp,
+                            blurRadius = 16.dp,
                             shadowEnabled = true
                         )
                         .clickable { onNavigateSignUp() },

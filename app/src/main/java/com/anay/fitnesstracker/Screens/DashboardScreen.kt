@@ -215,7 +215,6 @@ fun DashboardScreen(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .hazeSource(state = hazeState)
                 .appBackgroundGradient()
         )
 
@@ -223,6 +222,8 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .hazeSource(state = hazeState)
+
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -398,7 +399,7 @@ private fun DashboardMetricCard(
     GlassCard(
         modifier = modifier.fillMaxWidth(),
         hazeState = hazeState,
-        blurRadius = 24.dp,
+        blurRadius = 16.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Column(
@@ -570,7 +571,7 @@ private fun WorkoutCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         hazeState = hazeState,
-        blurRadius = 24.dp,
+        blurRadius = 16.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Row(

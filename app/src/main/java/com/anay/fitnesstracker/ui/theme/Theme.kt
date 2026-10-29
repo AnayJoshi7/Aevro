@@ -139,13 +139,12 @@ fun FitnessTrackerTheme(
 fun Modifier.appBackgroundGradient(): Modifier = this.drawBehind {
     val gradientBrush = Brush.linearGradient(
         colorStops = arrayOf(
-            0.00f to Color(0xFF030906),
-            0.52f to Color(0xFF030906), // 52% stop from Figma
-            0.92f to Color(0xFF1F2622), // 92% stop from Figma
-            1.00f to Color(0xFF1F2622)
+            0.00f to Color(0xFF030906).copy(alpha = 1.00f),
+            0.50f to Color(0xFF111814).copy(alpha = 1.00f),
+            1.00f to Color(0xFF1F2622).copy(alpha = 1.00f)
         ),
-        start = Offset(x = 0f, y = 0f),                         // Top-Left origin
-        end = Offset(x = size.width * 0.90f, y = size.height)   // Diagonally toward bottom-right
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY) // or adjust direction
     )
     drawRect(brush = gradientBrush)
 }

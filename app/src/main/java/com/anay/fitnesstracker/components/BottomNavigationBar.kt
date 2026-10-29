@@ -71,7 +71,7 @@ fun AppBottomNavigationBar(
             .height(78.dp)
             .glassEffect(
                 hazeState = hazeState,
-                blurRadius = 24.dp,
+                blurRadius = 16.dp,
                 cornerRadius = 28.dp,
                 tint = NavSurfaceTint,
                 shadowEnabled = true

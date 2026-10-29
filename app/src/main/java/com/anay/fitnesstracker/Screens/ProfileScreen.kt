@@ -232,7 +232,7 @@ private fun UserInfoCard(
             .fillMaxWidth()
             .glassEffect(
                 hazeState = hazeState,
-                blurRadius = 24.dp,
+                blurRadius = 16.dp,
                 shadowEnabled = true
             )
 
@@ -272,7 +272,7 @@ private fun SettingsCard(
             .fillMaxWidth()
             .glassEffect(
                 hazeState = hazeState,
-                blurRadius = 24.dp,
+                blurRadius = 16.dp,
                 shadowEnabled = true
             )
 
