@@ -16,31 +16,38 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.components.NextPillButton
-import com.anay.fitnesstracker.ui.theme.*
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
-import com.anay.fitnesstracker.components.icons
+import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import java.text.NumberFormat
+import java.util.Locale
 
+private val CardDarkBg = Color(0xFF0F1E16)
+private val CardBorderColor = Color(0xFF27D07F).copy(alpha = 0.22f)
+private val PrimaryGreen = Color(0xFF27D07F)
+private val TextWhite = Color(0xFFFFFFFF)
+private val TextMuted = Color(0xFF8E9094)
 
 @Composable
 fun ConfirmationScreen(
     viewModel: FitnessViewModel,
     onEnterDashboard: () -> Unit
 ) {
-
     val tempUser by viewModel.tempOnboarding.collectAsState()
+
+    val formattedSteps = remember(tempUser.dailyStepGoal) {
+        NumberFormat.getNumberInstance(Locale.US).format(tempUser.dailyStepGoal)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .appBackgroundGradient()
-
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
-
     ) {
-        Spacer(modifier = Modifier.height(22.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Column(
             modifier = Modifier
@@ -49,81 +56,110 @@ fun ConfirmationScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(28.dp))
-
+            // Main Screen Title
             Text(
                 text = "Confirm Your\nPreferences",
                 color = PrimaryGreen,
-                fontSize = 28.sp,
+                fontSize = 34.sp,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 34.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Start
+                lineHeight = 40.sp
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
+            // 1. Username Card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                    .padding(20.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(CardDarkBg)
+                    .border(1.dp, CardBorderColor, RoundedCornerShape(26.dp))
+                    .padding(24.dp)
             ) {
-                Text("Your Username", color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(tempUser.username, color = TextWhite, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Save this username. You’ll use it to log in.", color = TextMuted, fontSize = 12.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("(You can edit this username later)", color = TextMuted, fontSize = 12.sp)
-
-
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-            val targetFats = (tempUser.dailyCalorieGoal * 0.25 / 9).toInt()
-            val targetCarbs = (tempUser.dailyCalorieGoal * 0.50 / 4).toInt()
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
-
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-
-                GoalItem(title = "Daily Calories-Intake Goal", value = "${tempUser.dailyCalorieGoal} Kcals")
-                GoalItem(title = "Daily Protein Goal", value = "${tempUser.dailyProteinGoal} Grams")
-                GoalItem(title = "Daily Carbs Goal", value = "${targetCarbs} Grams")
-                GoalItem(title = "Daily Fats Goal", value = "${targetFats} Grams")
-
-                GoalItem(title = "Daily Steps Goal", value = "${tempUser.dailyStepGoal} Steps")
-                GoalItem(title = "Weekly Workout Split", value = "${tempUser.workoutSplit} (${tempUser.workoutFrequency})")
+                Text(
+                    text = "Your Username",
+                    color = TextWhite,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = tempUser.username,
+                    color = TextWhite,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Save this username. You'll use it to log in.",
+                    color = TextMuted,
+                    fontSize = 14.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // 2. Targets Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(CardDarkBg)
+                    .border(1.dp, CardBorderColor, RoundedCornerShape(26.dp))
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp)
+            ) {
+                LargeGoalItem(
+                    title = "Daily Calories-Intake Goal",
+                    value = "${tempUser.dailyCalorieGoal} Kcals"
+                )
+
+                LargeGoalItem(
+                    title = "Daily Protein Goal",
+                    value = "${tempUser.dailyProteinGoal} Grams"
+                )
+
+                LargeGoalItem(
+                    title = "Daily Steps Goal",
+                    value = "$formattedSteps Steps"
+                )
+
+                LargeGoalItem(
+                    title = "Weekly Workout Split",
+                    value = "${tempUser.workoutSplit} - ${tempUser.workoutFrequency.take(1)} days"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
+        // Bottom Next Button
         NextPillButton(
             onClick = {
                 viewModel.confirmAndSaveProfile {
                     onEnterDashboard()
                 }
             },
-            modifier = Modifier.padding(bottom = 60.dp)
+            modifier = Modifier.padding(bottom = 36.dp)
         )
     }
 }
 
 @Composable
-private fun GoalItem(title: String, value: String) {
+private fun LargeGoalItem(title: String, value: String) {
     Column {
-        Text(text = title, color = TextWhite, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(text = value, color = TextWhite, fontSize = 15.sp)
+        Text(
+            text = title,
+            color = TextWhite,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            color = TextWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Normal
+        )
     }
 }

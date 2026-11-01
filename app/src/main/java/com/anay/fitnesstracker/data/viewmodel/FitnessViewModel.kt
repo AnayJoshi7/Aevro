@@ -5,7 +5,6 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.anay.fitnesstracker.components.*
 import com.anay.fitnesstracker.data.*
 import com.anay.fitnesstracker.data.SessionManager
 import com.anay.fitnesstracker.data.repository.ExerciseRepository
@@ -14,6 +13,7 @@ import com.anay.fitnesstracker.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.Job
@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
+import com.google.firebase.firestore.Source
 
 sealed class UsernameCheckState {
     object Idle : UsernameCheckState()
@@ -35,7 +36,11 @@ sealed class UsernameCheckState {
 class FitnessViewModel(application: Application) : AndroidViewModel(application) {
     private val db = FirebaseFirestore.getInstance().apply {
         firestoreSettings = FirebaseFirestoreSettings.Builder()
-            .setPersistenceEnabled(true)
+            .setLocalCacheSettings(
+                PersistentCacheSettings.newBuilder()
+                    .setSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                    .build()
+            )
             .build()
     }
     private val sessionManager = SessionManager(application)
@@ -73,34 +78,37 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
 
     private fun checkSavedSession() {
         val savedUsername = sessionManager.getUsername()
-        if (!savedUsername.isNullOrBlank()) {
-            val trimmed = savedUsername.trim()
-            val lower = trimmed.lowercase()
-
-            viewModelScope.launch {
-                try {
-                    // Try exact first, then lowercase
-                    var doc = db.collection("users").document(trimmed).get().await()
-                    if (!doc.exists()) {
-                        doc = db.collection("users").document(lower).get().await()
-                    }
-
-                    if (doc.exists()) {
-                        val validId = doc.id
-                        attachUserListener(validId)
-                    } else {
-                        // Stale or deleted user account
-                        sessionManager.clearSession()
-                        _isSessionChecking.value = false
-                    }
-                } catch (e: Exception) {
-                    Log.w("FitnessVM", "Could not check server session, attempting cached listener: ${e.message}")
-                    // Attempt to attach anyway for offline cache support
-                    attachUserListener(trimmed)
-                }
-            }
-        } else {
+        if (savedUsername.isNullOrBlank()) {
             _isSessionChecking.value = false
+            return
+        }
+
+        val trimmed = savedUsername.trim()
+        val lower = trimmed.lowercase()
+
+        viewModelScope.launch {
+            try {
+                // Read from local device SQLite cache first (instant, 0 network delay)
+                var cachedDoc = db.collection("users").document(trimmed)
+                    .get(com.google.firebase.firestore.Source.CACHE).await()
+
+                if (!cachedDoc.exists()) {
+                    cachedDoc = db.collection("users").document(lower)
+                        .get(com.google.firebase.firestore.Source.CACHE).await()
+                }
+
+                if (cachedDoc.exists()) {
+                    _currentUser.value = cachedDoc.toObject(UserProfile::class.java)
+                }
+            } catch (e: Exception) {
+                // Not yet cached on disk; background network listener will pick it up
+            } finally {
+                // ALWAYS release the splash/skeleton check so the UI is never stuck
+                _isSessionChecking.value = false
+            }
+
+            // Attach realtime background listener
+            attachUserListener(lower)
         }
     }
 
@@ -108,7 +116,9 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
         userSnapshotListener?.remove()
         userSnapshotListener = db.collection("users").document(documentId)
             .addSnapshotListener { snapshot, error ->
+                // Ensure flag is reset even if triggered by listener first
                 _isSessionChecking.value = false
+
                 if (error != null) {
                     Log.w("FitnessViewModel", "Firestore listener notice: ${error.message}")
                     return@addSnapshotListener
@@ -363,7 +373,13 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val username = FitnessCalculator.generateUsername(name, dobYear.toString(), contact)
         val (bmi, cat) = FitnessCalculator.calculateBmi(heightCm, weightKg)
-        val maintCal = FitnessCalculator.calculateMaintenanceCalories(gender, dobYear, heightCm, weightKg)
+        val maintCal = FitnessCalculator.calculateMaintenanceCalories(
+            gender,
+            dobYear,
+            heightCm,
+            weightKg,
+            activityLevel = "Moderately Active"
+        )
 
         _tempOnboarding.value = _tempOnboarding.value.copy(
             username = username,
@@ -706,6 +722,115 @@ class FitnessViewModel(application: Application) : AndroidViewModel(application)
 
     fun clearPendingScannedFood() {
         _pendingScannedFood.value = null
+    }
+
+    fun logWater(amountMl: Int) {
+        val user = _currentUser.value ?: return
+        val newEntry = WaterLogEntry(amountMl = amountMl)
+        val updated = user.copy(waterLogs = user.waterLogs + newEntry)
+        _currentUser.value = updated
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf("waterLogs" to updated.waterLogs), SetOptions.merge())
+    }
+
+    fun logWeight(newWeight: Double) {
+        val user = _currentUser.value ?: return
+        val newEntry = WeightLogEntry(weightKg = newWeight)
+        val updated = user.copy(
+            weightKg = newWeight,
+            weightLogs = user.weightLogs + newEntry
+        )
+        _currentUser.value = updated
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf(
+                "weightKg" to newWeight,
+                "weightLogs" to updated.weightLogs
+            ), SetOptions.merge())
+    }
+
+    fun updateReminderSettings(settings: ReminderSettings) {
+        val user = _currentUser.value ?: return
+        val updated = user.copy(reminderSettings = settings)
+        _currentUser.value = updated
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf("reminderSettings" to settings), SetOptions.merge())
+    }
+
+    fun removePlannedExerciseFromToday(exerciseName: String) {
+        val user = _currentUser.value ?: return
+        val currentList = if (user.todayCustomWorkoutList.isEmpty()) {
+            WorkoutScheduleHelper.getTodayExercises(user)
+        } else {
+            user.todayCustomWorkoutList
+        }
+        val updatedList = currentList.filterNot { it.equals(exerciseName, ignoreCase = true) }
+        val updated = user.copy(todayCustomWorkoutList = updatedList)
+        _currentUser.value = updated
+
+        val docId = user.username.trim().lowercase()
+        db.collection("users").document(docId)
+            .set(mapOf("todayCustomWorkoutList" to updatedList), SetOptions.merge())
+    }
+    fun updateOnboardingGoals(
+        activityLevel: String,
+        targetWeight: Double,
+        targetSteps: Int,
+        targetWaterL: Double
+    ) {
+        val current = _tempOnboarding.value
+
+        // 1. Calculate Activity Multiplier
+        val multiplier = when (activityLevel.lowercase().trim()) {
+            "lightly active" -> 1.375
+            "moderately active" -> 1.55
+            "highly active", "higly active" -> 1.725
+            else -> 1.2
+        }
+
+        // 2. Mifflin-St Jeor BMR
+        val age = (FitnessCalculator.CURRENT_YEAR - current.birthYear).coerceAtLeast(10)
+        val bmr = if (current.gender.trim().equals("Female", ignoreCase = true)) {
+            (10.0 * current.weightKg) + (6.25 * current.heightCm) - (5.0 * age) - 161.0
+        } else {
+            (10.0 * current.weightKg) + (6.25 * current.heightCm) - (5.0 * age) + 5.0
+        }
+        val maintCal = (bmr * multiplier).toInt()
+
+        // 3. Goal & Calorie Target
+        val weightDiff = targetWeight - current.weightKg
+        val (goal, calTarget) = when {
+            weightDiff < -0.5 -> "Lose Weight" to (maintCal - 500).coerceAtLeast(1200)
+            weightDiff > 0.5 -> "Gain Weight" to (maintCal + 400)
+            else -> "Maintain Weight" to maintCal
+        }
+
+        // 4. Protein Target
+        val proteinTarget = when (goal) {
+            "Lose Weight" -> (current.weightKg * 2.0).toInt()
+            "Gain Weight" -> (current.weightKg * 1.8).toInt()
+            else -> (current.weightKg * 1.6).toInt()
+        }
+
+        _tempOnboarding.value = current.copy(
+            activityLevel = activityLevel,
+            maintenanceCalories = maintCal,
+            dailyCalorieGoal = calTarget,
+            dailyProteinGoal = proteinTarget,
+            fitnessGoal = goal,
+            dailyStepGoal = targetSteps,
+            dailyWaterGoalLiters = targetWaterL
+        )
+    }
+
+    fun updateActivityLevel(activity: String) {
+        val current = _tempOnboarding.value
+        _tempOnboarding.value = current.copy(activityLevel = activity)
     }
 
     fun addMeal(

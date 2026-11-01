@@ -1,5 +1,6 @@
 package com.anay.fitnesstracker.Screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,10 +11,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Leaderboard
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -23,22 +23,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
-import com.anay.fitnesstracker.components.AppBottomNavigationBar
 import com.anay.fitnesstracker.ui.theme.GlassCard
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
-import com.anay.fitnesstracker.ui.theme.borderGradient
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-
-
 
 private val CardBackground = Color(0x1A3ddc84)
 private val PrimaryGreen = Color(0xFF3ddc84)
@@ -52,7 +47,8 @@ data class WorkoutCardData(
     val title: String,
     val muscleGroups: String = "",
     val exerciseCountText: String,
-    val route: String
+    val route: String,
+    val exercises: List<String> = emptyList()
 )
 
 @Composable
@@ -88,17 +84,17 @@ fun WorkoutScreen(
         todayWorkoutPreset.muscleGroups
     }
 
-    val todayExerciseCountText = if (todayCustomDay != null) {
-        "${todayCustomDay.exercises.size} Exercises"
-    } else {
-        todayWorkoutPreset.exerciseCountText
+    val todayExercises = remember(user, todayCustomDay) {
+        if (todayCustomDay != null && todayCustomDay.exercises.isNotEmpty()) {
+            todayCustomDay.exercises
+        } else if (!user?.todayCustomWorkoutList.isNullOrEmpty()) {
+            user!!.todayCustomWorkoutList
+        } else {
+            WorkoutScheduleHelper.getTodayExercises(user)
+        }
     }
 
-    val todayRoute = if (todayCustomDay != null) {
-        "custom_workout_detail/${todayCustomDay.dayName}"
-    } else {
-        todayWorkoutPreset.route ?: Routes.LOG_WORKOUT
-    }
+    val todayExerciseCountText = "${todayExercises.size} Exercises"
 
     // 3. Resolve Other Workouts (Custom Schedule vs Presets)
     val hasCustomSchedule = user?.customSchedule?.any { it.muscleGroup.isNotBlank() } == true
@@ -113,51 +109,106 @@ fun WorkoutScreen(
                     title = day.muscleGroup,
                     muscleGroups = "",
                     exerciseCountText = "${day.exercises.size} Exercises",
-                    route = "custom_workout_detail/${day.dayName}"
+                    route = "custom_workout_detail/${day.dayName}",
+                    exercises = day.exercises
                 )
             } ?: emptyList()
     } else {
         val defaultWorkouts = when (user?.workoutFrequency) {
             "3 Days a Week" -> listOf(
-                WorkoutCardData("Full Body", "Full Body", "9 Exercises", Routes.WORKOUT_FULL_BODY)
+                WorkoutCardData(
+                    "Full Body",
+                    "Full Body",
+                    "5 Exercises",
+                    Routes.WORKOUT_FULL_BODY,
+                    listOf("Squats", "Bench Press", "Bent-over Rows", "Overhead Press", "Barbell Curls")
+                )
             )
             "4 Days a Week" -> listOf(
-                WorkoutCardData("Upper Body", "Chest, Back, Shoulders", "9 Exercises", Routes.WORKOUT_UPPER_BODY),
-                WorkoutCardData("Lower Body", "Quads, Hamstrings, Calves", "7 Exercises", Routes.WORKOUT_LOWER_BODY)
+                WorkoutCardData(
+                    "Upper Body",
+                    "Chest, Back, Shoulders",
+                    "6 Exercises",
+                    Routes.WORKOUT_UPPER_BODY,
+                    listOf("Incline Bench Press", "Pull-Ups", "Dumbbell Shoulder Press", "Cable Rows", "Dips", "Bicep Curls")
+                ),
+                WorkoutCardData(
+                    "Lower Body",
+                    "Quads, Hamstrings, Calves",
+                    "5 Exercises",
+                    Routes.WORKOUT_LOWER_BODY,
+                    listOf("Squats", "Bulgarian Split Squats", "Calf Raises", "Leg Press", "Hanging Leg Raises")
+                )
             )
             "5 Days a Week" -> listOf(
-                WorkoutCardData("Upper Body", "Chest, Back, Shoulders", "9 Exercises", Routes.WORKOUT_UPPER_BODY),
-                WorkoutCardData("Lower Body", "Quads, Hamstrings, Calves", "7 Exercises", Routes.WORKOUT_LOWER_BODY),
-                WorkoutCardData("Push Day", "Chest, Shoulder, Triceps", "7 Exercises", Routes.WORKOUT_PUSH_DAY),
-                WorkoutCardData("Pull Day", "Back, Biceps", "8 Exercises", Routes.WORKOUT_PULL_DAY),
-                WorkoutCardData("Leg Day", "Legs, Abs", "9 Exercises", Routes.WORKOUT_LEG_DAY)
+                WorkoutCardData(
+                    "Upper Body",
+                    "Chest, Back, Shoulders",
+                    "6 Exercises",
+                    Routes.WORKOUT_UPPER_BODY,
+                    listOf("Incline Bench Press", "Pull-Ups", "Dumbbell Shoulder Press", "Cable Rows", "Dips", "Bicep Curls")
+                ),
+                WorkoutCardData(
+                    "Lower Body",
+                    "Quads, Hamstrings, Calves",
+                    "5 Exercises",
+                    Routes.WORKOUT_LOWER_BODY,
+                    listOf("Squats", "Bulgarian Split Squats", "Calf Raises", "Leg Press", "Hanging Leg Raises")
+                ),
+                WorkoutCardData(
+                    "Push Day",
+                    "Chest, Shoulder, Triceps",
+                    "5 Exercises",
+                    Routes.WORKOUT_PUSH_DAY,
+                    listOf("Flat Bench Press", "Incline Dumbbell Press", "Overhead Press", "Lateral Raises", "Tricep Pushdowns")
+                ),
+                WorkoutCardData(
+                    "Pull Day",
+                    "Back, Biceps",
+                    "5 Exercises",
+                    Routes.WORKOUT_PULL_DAY,
+                    listOf("Deadlifts", "Lat Pulldown", "Barbell Row", "Face Pulls", "Bicep Curls")
+                ),
+                WorkoutCardData(
+                    "Leg Day",
+                    "Legs, Abs",
+                    "5 Exercises",
+                    Routes.WORKOUT_LEG_DAY,
+                    listOf("Barbell Squats", "Romanian Deadlift", "Leg Press", "Leg Extensions", "Calf Raises")
+                )
             )
             else -> listOf(
-                WorkoutCardData("Push Day", "Chest, Shoulder, Triceps", "7 Exercises", Routes.WORKOUT_PUSH_DAY),
-                WorkoutCardData("Pull Day", "Back, Biceps", "8 Exercises", Routes.WORKOUT_PULL_DAY),
-                WorkoutCardData("Leg Day", "Legs, Abs", "9 Exercises", Routes.WORKOUT_LEG_DAY)
+                WorkoutCardData(
+                    "Push Day",
+                    "Chest, Shoulder, Triceps",
+                    "5 Exercises",
+                    Routes.WORKOUT_PUSH_DAY,
+                    listOf("Flat Bench Press", "Incline Dumbbell Press", "Overhead Press", "Lateral Raises", "Tricep Pushdowns")
+                ),
+                WorkoutCardData(
+                    "Pull Day",
+                    "Back, Biceps",
+                    "5 Exercises",
+                    Routes.WORKOUT_PULL_DAY,
+                    listOf("Deadlifts", "Lat Pulldown", "Barbell Row", "Face Pulls", "Bicep Curls")
+                ),
+                WorkoutCardData(
+                    "Leg Day",
+                    "Legs, Abs",
+                    "5 Exercises",
+                    Routes.WORKOUT_LEG_DAY,
+                    listOf("Barbell Squats", "Romanian Deadlift", "Leg Press", "Leg Extensions", "Calf Raises")
+                )
             )
         }
         defaultWorkouts.filter { it.title != todayTitle }
     }
-
-    val backgroundGradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF1B1C1E),
-            Color(0xFF131416),
-            Color(0xFF2C2E31),
-            Color(0xFF111214)
-        )
-    )
-
-
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .appBackgroundGradient()
             .hazeSource(state = hazeState)
-
             .statusBarsPadding()
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -186,12 +237,8 @@ fun WorkoutScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             ActionPillButton(
-                hazeState =  hazeState,
-
-
-
+                hazeState = hazeState,
                 title = "Log Workout",
-
                 onClick = { onNavigate(Routes.LOG_WORKOUT) }
             )
 
@@ -199,8 +246,7 @@ fun WorkoutScreen(
 
             // 2. Full-Width Create Custom Schedule Pill Button
             ActionPillButton(
-                hazeState =  hazeState,
-
+                hazeState = hazeState,
                 title = "Create custom schedule",
                 onClick = { onNavigate(Routes.CUSTOM_SCHEDULE) }
             )
@@ -218,18 +264,16 @@ fun WorkoutScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-
-
-
-            // Today's Clickable Card
-            WorkoutDayClickableCard(
+            // Today's Expandable Card (Disabled navigation, expands to show exercises with delete icons)
+            WorkoutDayExpandableCard(
                 hazeState = hazeState,
-
-
                 title = todayTitle,
                 muscleGroups = todayMuscles,
                 exerciseCountText = todayExerciseCountText,
-                onClick = { onNavigate(todayRoute) }
+                exercises = todayExercises,
+                onDeleteExercise = { exerciseName ->
+                    fitnessViewModel.removePlannedExerciseFromToday(exerciseName)
+                }
             )
 
             if (otherWorkouts.isNotEmpty()) {
@@ -246,23 +290,21 @@ fun WorkoutScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Other Clickable Cards
+                // Other Expandable Cards (Disabled navigation, expands on arrow tap)
                 otherWorkouts.forEach { workout ->
-                    WorkoutDayClickableCard(
+                    WorkoutDayExpandableCard(
                         hazeState = hazeState,
-
                         title = workout.title,
                         muscleGroups = workout.muscleGroups,
                         exerciseCountText = workout.exerciseCountText,
-                        onClick = { onNavigate(workout.route) }
+                        exercises = workout.exercises,
+                        onDeleteExercise = { /* Local preview deletion */ }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             } else {
                 Spacer(modifier = Modifier.height(16.dp))
             }
-
-
         }
 
         // Fixed bottom navigation bar
@@ -279,73 +321,127 @@ fun WorkoutScreen(
             )
 
             Spacer(modifier = Modifier.height(110.dp))
-//            AppBottomNavigationBar(
-//                currentRoute = Routes.WORKOUTS,
-//                onNavigate = onNavigate,
-//                hazeState = hazeState
-//
-//            )
-
         }
     }
 }
 
 @Composable
-fun WorkoutDayClickableCard(
+fun WorkoutDayExpandableCard(
     hazeState: HazeState,
     title: String,
     muscleGroups: String = "",
     exerciseCountText: String,
-    onClick: () -> Unit
+    exercises: List<String>,
+    onDeleteExercise: (String) -> Unit
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var currentExerciseList by remember(exercises) { mutableStateOf(exercises) }
+
     GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         hazeState = hazeState,
         blurRadius = 16.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = title,
-                    color = TextWhite,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = title,
+                        color = TextWhite,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                if (muscleGroups.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    if (muscleGroups.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = muscleGroups,
+                            color = TextWhite,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = muscleGroups,
-                        color = TextWhite,
-                        fontSize = 14.sp
+                        text = "${currentExerciseList.size} Exercises",
+                        color = TextMuted,
+                        fontSize = 12.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = exerciseCountText,
-                    color = TextMuted,
-                    fontSize = 12.sp
-                )
+                // Arrow Pill to toggle expansion without navigating
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 1f))
+                        .clickable { isExpanded = !isExpanded },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Expand workout",
+                        tint = Color.Black,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
-            ArrowBadge()
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    currentExerciseList.forEachIndexed { index, exerciseName ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "${index + 1}. $exerciseName",
+                                color = TextWhite,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Exercise",
+                                tint = Color(0xFFFF5252),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable {
+                                        currentExerciseList = currentExerciseList.filterNot { it == exerciseName }
+                                        onDeleteExercise(exerciseName)
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
-
 
 @Composable
 private fun ActionPillButton(
@@ -391,98 +487,3 @@ private fun ActionPillButton(
         }
     }
 }
-
-@Composable
-private fun ArrowBadge() {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 1f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            tint = Color.Black,
-            modifier = Modifier.size(18.dp)
-        )
-    }
-}
-
-//@Composable
-//private fun WorkoutsBottomNavigationBar(
-//    onNavigate: (String) -> Unit
-//) {
-//    Row(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .height(64.dp)
-//            .clip(RoundedCornerShape(22.dp))
-//            .background(BottomNavBg)
-//            .padding(horizontal = 8.dp, vertical = 6.dp),
-//        horizontalArrangement = Arrangement.SpaceBetween,
-//        verticalAlignment = Alignment.CenterVertically
-//    ) {
-//        WorkoutsBottomNavItem(
-//            icon = Icons.Default.Home,
-//            label = "Home",
-//            selected = false,
-//            onClick = { onNavigate(Routes.DASHBOARD) }
-//        )
-//        WorkoutsBottomNavItem(
-//            icon = Icons.Default.FitnessCenter,
-//            label = "Workouts",
-//            selected = true,
-//            onClick = { onNavigate(Routes.WORKOUTS) }
-//        )
-//        WorkoutsBottomNavItem(
-//            icon = Icons.Default.Leaderboard,
-//            label = "Progress",
-//            selected = false,
-//            onClick = { onNavigate(Routes.PROGRESS) }
-//        )
-//        WorkoutsBottomNavItem(
-//            icon = Icons.Default.Person,
-//            label = "Profile",
-//            selected = false,
-//            onClick = { onNavigate(Routes.PROFILE) }
-//        )
-//    }
-//}
-//
-//@Composable
-//private fun RowScope.WorkoutsBottomNavItem(
-//    icon: ImageVector,
-//    label: String,
-//    selected: Boolean,
-//    onClick: () -> Unit
-//) {
-//    Column(
-//        modifier = Modifier
-//            .weight(1f)
-//            .fillMaxHeight()
-//            .clip(RoundedCornerShape(16.dp))
-//            .background(if (selected) SelectedTabBg else Color.Transparent)
-//            .clickable { onClick() },
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center
-//    ) {
-//        Icon(
-//            imageVector = icon,
-//            contentDescription = label,
-//            tint = BottomNavIconBg,
-//            modifier = Modifier.size(22.dp)
-//        )
-//
-//        Spacer(modifier = Modifier.height(2.dp))
-//
-//        Text(
-//            text = label,
-//            color = BottomNavIconBg,
-//            fontSize = 11.sp,
-//            fontWeight = FontWeight.SemiBold,
-//            maxLines = 1
-//        )
-//    }
-//}

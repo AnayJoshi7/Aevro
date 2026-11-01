@@ -799,7 +799,7 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // Logged Exercises Header
+// Logged Exercises Header
         Text(
             text = "Logged Exercises",
             color = TextWhite,
@@ -825,60 +825,38 @@ fun LogWorkoutScreen(
             todayLogged.forEach { exercise ->
                 val isCardioExercise = exercise.category.equals("Cardio", ignoreCase = true)
 
+                // Search for previous logging of this exact exercise (case-insensitive)[cite: 5]
+                val previousLog = remember(allLogged, exercise.exerciseName) {
+                    allLogged
+                        .filter { it.id != exercise.id && it.exerciseName.trim().equals(exercise.exerciseName.trim(), ignoreCase = true) }
+                        .maxByOrNull { it.timestamp }
+                }
+
+                // Compute progression delta badge[cite: 5]
+                val progressBadgeText = remember(exercise, previousLog) {
+                    if (previousLog == null) null
+                    else {
+                        val currMaxWt = exercise.sets.mapNotNull { it.weightKg.toDoubleOrNull() }.maxOrNull() ?: 0.0
+                        val prevMaxWt = previousLog.sets.mapNotNull { it.weightKg.toDoubleOrNull() }.maxOrNull() ?: 0.0
+                        val currMaxReps = exercise.sets.mapNotNull { it.reps.toIntOrNull() }.maxOrNull() ?: 0
+                        val prevMaxReps = previousLog.sets.mapNotNull { it.reps.toIntOrNull() }.maxOrNull() ?: 0
+
+                        val wtDiff = currMaxWt - prevMaxWt
+                        val repDiff = currMaxReps - prevMaxReps
+
+                        when {
+                            wtDiff > 0 -> "+${String.format(Locale.US, "%.1f", wtDiff)} kg"
+                            wtDiff < 0 -> "-${String.format(Locale.US, "%.1f", -wtDiff)} kg"
+                            repDiff > 0 -> "+$repDiff reps"
+                            repDiff < 0 -> "-$repDiff reps"
+                            else -> "same"
+                        }
+                    }
+                }
+
                 if (isCardioExercise) {
                     val duration = exercise.sets.firstOrNull()?.reps ?: "0"
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(CardDarkBg)
-                            .border(1.dp, CardBorderColor, RoundedCornerShape(20.dp))
-                            .padding(horizontal = 22.dp, vertical = 18.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${exercise.exerciseName} : $duration Mins",
-                                color = TextWhite,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            IconButton(
-                                onClick = { editingWorkout = exercise },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Cardio",
-                                    tint = PrimaryGreen,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            IconButton(
-                                onClick = { viewModel.deleteLoggedExercise(exercise.id) },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete Cardio",
-                                    tint = Color(0xFFE53935),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                } else {
-                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(22.dp))
@@ -891,96 +869,123 @@ fun LogWorkoutScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = exercise.exerciseName,
+                                text = "${exercise.exerciseName} : $duration Mins",
                                 color = TextWhite,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f)
                             )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            // Edit Button
-                            IconButton(
-                                onClick = { editingWorkout = exercise },
-                                modifier = Modifier.size(28.dp)
-                            ) {
+                            IconButton(onClick = { editingWorkout = exercise }) {
+                                Icon(Icons.Default.Edit, contentDescription = null, tint = PrimaryGreen)
+                            }
+                            IconButton(onClick = { viewModel.deleteLoggedExercise(exercise.id) }) {
+                                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                } else {
+                    // Full comparison card matching your mockup design[cite: 5]
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(CardDarkBg)
+                            .border(1.dp, CardBorderColor, RoundedCornerShape(22.dp))
+                            .padding(18.dp)
+                    ) {
+                        // Current Log Header[cite: 5]
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = exercise.exerciseName,
+                                color = TextWhite,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                progressBadgeText?.let { badge ->
+                                    Text(
+                                        text = badge,
+                                        color = if (badge.startsWith("+")) PrimaryGreen else Color.LightGray,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(end = 8.dp)
+                                    )
+                                }
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Exercise",
+                                    contentDescription = "Edit",
                                     tint = PrimaryGreen,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable { editingWorkout = exercise }
                                 )
-                            }
-
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            // Delete Button
-                            IconButton(
-                                onClick = { viewModel.deleteLoggedExercise(exercise.id) },
-                                modifier = Modifier.size(28.dp)
-                            ) {
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Icon(
                                     imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete Exercise",
-                                    tint = Color(0xFFE53935),
-                                    modifier = Modifier.size(18.dp)
+                                    contentDescription = "Delete",
+                                    tint = Color.Red,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable { viewModel.deleteLoggedExercise(exercise.id) }
                                 )
                             }
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        exercise.sets.forEach { setItem ->
-                            val displayWeight = if (!isKg) {
-                                val kgVal = setItem.weightKg.toDoubleOrNull() ?: 0.0
-                                val lbVal = kgVal * 2.20462262
-                                if (abs(lbVal - round(lbVal)) < 0.05) {
-                                    round(lbVal).toInt().toString()
-                                } else {
-                                    String.format(Locale.US, "%.1f", lbVal)
-                                }
-                            } else {
-                                val kgVal = setItem.weightKg.toDoubleOrNull() ?: 0.0
-                                if (abs(kgVal - round(kgVal)) < 0.05) {
-                                    round(kgVal).toInt().toString()
-                                } else {
-                                    String.format(Locale.US, "%.1f", kgVal)
-                                }
-                            }
-                            val unitLabel = if (isKg) "kg" else "lb"
-
+                        // Current Sets[cite: 5]
+                        exercise.sets.forEach { set ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(vertical = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = "Set : ${setItem.setNumber}",
-                                    color = TextWhite,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(0.9f)
-                                )
-                                Text(
-                                    text = "Weight : $displayWeight $unitLabel",
-                                    color = TextWhite,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1.3f)
-                                )
-                                Text(
-                                    text = "Reps : ${setItem.reps}",
-                                    color = TextWhite,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(0.9f)
-                                )
+                                Text("Set : ${set.setNumber}", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                Text("Weight : ${set.weightKg} kg", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1.3f))
+                                Text("Reps : ${set.reps}", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                            }
+                        }
+
+                        // Previous Sets (Sub-box inside card)[cite: 5]
+                        if (previousLog != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Previous", color = Color(0xFF7D8C83), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0xFF0A150F))
+                                    .border(1.dp, CardBorderColor.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                                    .padding(14.dp)
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(previousLog.exerciseName, color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    previousLog.sets.forEach { prevSet ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 2.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text("Set : ${prevSet.setNumber}", color = TextWhite.copy(alpha = 0.85f), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                                            Text("Weight : ${prevSet.weightKg} kg", color = TextWhite.copy(alpha = 0.85f), fontSize = 13.sp, modifier = Modifier.weight(1.3f))
+                                            Text("Reps : ${prevSet.reps}", color = TextWhite.copy(alpha = 0.85f), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
             }
         }

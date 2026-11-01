@@ -183,6 +183,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(26.dp))
 
             SettingsCard(
+                onCustomRemindersClick = {onNavigate(Routes.CUSTOM_REMINDER)},
                 onPersonalInfoClick = { onNavigate(Routes.PERSONAL_INFO) },
                 onNotificationsClick = { onNavigate(Routes.NOTIFICATIONS) },
                 onAboutClick = { onNavigate(Routes.ABOUT) },
@@ -261,6 +262,7 @@ private fun ProfileInfoRow(label: String, value: String,) {
 
 @Composable
 private fun SettingsCard(
+    onCustomRemindersClick: () -> Unit,
     onPersonalInfoClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onAboutClick: () -> Unit,
@@ -289,6 +291,7 @@ private fun SettingsCard(
         Spacer(modifier = Modifier.height(20.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            SettingsButton(label = "Create Reminders", onClick = onCustomRemindersClick)
             SettingsButton(label = "Account Settings", onClick = onPersonalInfoClick)
             SettingsButton(label = "Notifications", onClick = onNotificationsClick)
             SettingsButton(label = "About", onClick = onAboutClick)

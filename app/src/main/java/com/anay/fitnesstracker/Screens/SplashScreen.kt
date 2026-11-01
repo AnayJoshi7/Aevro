@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
+import com.anay.fitnesstracker.components.DashboardSkeletonScreen
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.ui.theme.glassEffect
@@ -58,21 +59,9 @@ fun SplashScreen(
             onLoginSuccess()
         }
     }
-
     // While checking SharedPreferences and Firestore on startup, show a subtle loading spinner
     if (isSessionChecking) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .appBackgroundGradient(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(
-                color = PrimaryGreen,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(36.dp)
-            )
-        }
+        com.anay.fitnesstracker.components.DashboardSkeletonScreen()
         return
     }
 

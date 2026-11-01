@@ -1,11 +1,11 @@
 package com.anay.fitnesstracker.data
 
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper.WorkoutScheduleHelper.getTodayWorkout
-import com.anay.fitnesstracker.data.WorkoutScheduleHelper.getTodayWorkout
 import kotlin.math.roundToInt
 import java.time.DayOfWeek
 import java.time.LocalDate
 import com.anay.fitnesstracker.Routes
+import com.anay.fitnesstracker.data.FitnessCalculator.CURRENT_YEAR
 
 
 object FitnessCalculator {
@@ -48,7 +48,8 @@ object FitnessCalculator {
         gender: String,
         birthYear: Int,
         heightCm: Double,
-        weightKg: Double
+        weightKg: Double,
+        activityLevel: String
     ): Int {
         val age = (CURRENT_YEAR - birthYear).coerceAtLeast(10)
         val bmr = if (gender.trim().equals("Female", ignoreCase = true)) {
@@ -113,6 +114,8 @@ object WorkoutScheduleHelper {
             )
         }
 
+
+
         // Fallback to preset split calculation
         val info = getTodayWorkout(
             user?.workoutFrequency ?: "6 Days a Week",
@@ -125,6 +128,83 @@ object WorkoutScheduleHelper {
             route = info.route
         )
     }
+
+    fun getTodayExercises(user: UserProfile?): List<String> {
+        val dayOfWeek = java.time.LocalDate.now().dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+        val customDay = user?.customSchedule?.find { it.dayName.equals(dayOfWeek, ignoreCase = true) }
+        if (customDay != null && customDay.exercises.isNotEmpty()) {
+            return customDay.exercises
+        }
+        val workout = getTodayWorkout(user)
+        return when (workout.title) {
+            "Push Day" -> listOf("Flat Barbell Bench Press", "Incline Dumbbell Press", "Overhead Shoulder Press", "Lateral Raises", "Tricep Pushdowns", "Cable Crossovers", "Skull Crushers")
+            "Pull Day" -> listOf("Barbell Deadlifts", "Lat Pulldown", "Barbell Bent Over Row", "Face Pulls", "Incline Bicep Curls", "Hammer Curls", "Reverse Flyes")
+            "Leg Day" -> listOf("Barbell Squats", "Romanian Deadlifts", "Leg Press", "Leg Extensions", "Hamstring Curls", "Standing Calf Raises")
+            "Upper Body" -> listOf("Incline Bench Press", "Pull-Ups", "Dumbbell Shoulder Press", "Cable Rows", "Dips", "Bicep Curls")
+            "Lower Body" -> listOf("Squats", "Bulgarian Split Squats", "Calf Raises", "Leg Press", "Hanging Leg Raises")
+            "Full Body" -> listOf("Squats", "Bench Press", "Bent-over Rows", "Overhead Press", "Barbell Curls")
+            else -> emptyList()
+        }
+    }
+
+    fun getActivityMultiplier(activityLevel: String): Double {
+        return when (activityLevel.lowercase().trim()) {
+            "lightly active" -> 1.375
+            "moderately active" -> 1.55
+            "highly active", "higly active" -> 1.725
+            else -> 1.2 // Sedentary / Default
+        }
+    }
+
+    fun calculateMaintenanceCalories(
+        gender: String,
+        birthYear: Int,
+        heightCm: Double,
+        weightKg: Double,
+        activityLevel: String = "Moderately active"
+    ): Int {
+        val age = (CURRENT_YEAR - birthYear).coerceAtLeast(10)
+        val bmr = if (gender.trim().equals("Female", ignoreCase = true)) {
+            (10.0 * weightKg) + (6.25 * heightCm) - (5.0 * age) - 161.0
+        } else {
+            (10.0 * weightKg) + (6.25 * heightCm) - (5.0 * age) + 5.0
+        }
+
+        val multiplier = when (activityLevel.lowercase().trim()) {
+            "lightly active" -> 1.375
+            "moderately active" -> 1.55
+            "highly active", "higly active" -> 1.725
+            else -> 1.2
+        }
+
+        return (bmr * multiplier).roundToInt()
+    }
+
+    fun calculateFullPlan(
+        maintenanceCalories: Int,
+        currentWeightKg: Double,
+        targetWeightKg: Double,
+        activityLevel: String
+    ): Triple<Int, Int, String> {
+        // Determine fitness goal from target weight comparison
+        val diff = targetWeightKg - currentWeightKg
+        val (goal, calorieTarget) = when {
+            diff < -0.5 -> "Lose Weight" to (maintenanceCalories - 500).coerceAtLeast(1200)
+            diff > 0.5 -> "Gain Weight" to (maintenanceCalories + 400)
+            else -> "Maintain Weight" to maintenanceCalories
+        }
+
+        // Standard Protein: 2.0g/kg for weight loss, 1.8g/kg for muscle gain, 1.6g/kg for maintenance
+        val proteinTarget = when (goal) {
+            "Lose Weight" -> (currentWeightKg * 2.0).roundToInt()
+            "Gain Weight" -> (currentWeightKg * 1.8).roundToInt()
+            else -> (currentWeightKg * 1.6).roundToInt()
+        }
+
+        return Triple(calorieTarget, proteinTarget, goal)
+    }
+
+
 
     fun getTodayTargetExerciseCount(user: UserProfile?): Int {
         val dayOfWeek =

@@ -54,6 +54,8 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val ABOUT = "about"
 
+    const val CUSTOM_REMINDER = "custom_reminder"
+
     const val WORKOUT_PUSH_DAY = "workout_push_day"
     const val WORKOUT_PULL_DAY = "workout_pull_day"
     const val WORKOUT_LEG_DAY = "workout_leg_day"
@@ -90,14 +92,7 @@ fun FitnessAppNavHost(
     val shouldShowBottomBar = currentRoute in mainTabs
 
     if (isCheckingSession) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF131416)),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = Color(0xFF27D07F))
-        }
+        com.anay.fitnesstracker.components.DashboardSkeletonScreen()
         return
     }
 
@@ -244,6 +239,13 @@ fun FitnessAppNavHost(
             // Workout Logging
             composable(Routes.LOG_WORKOUT) {
                 LogWorkoutScreen(
+                    viewModel = fitnessViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Routes.CUSTOM_REMINDER) {
+                CustomReminderScreen(
                     viewModel = fitnessViewModel,
                     onBack = { navController.popBackStack() }
                 )

@@ -1,4 +1,5 @@
 package com.anay.fitnesstracker.data
+
 import com.google.firebase.firestore.Exclude
 import java.util.UUID
 
@@ -42,6 +43,25 @@ data class Meal(
     val timestamp: Long = System.currentTimeMillis(),
     val items: List<MealItemEntry> = emptyList()
 )
+
+data class WeightLogEntry(
+    val timestamp: Long = System.currentTimeMillis(),
+    val weightKg: Double = 0.0
+)
+
+data class WaterLogEntry(
+    val timestamp: Long = System.currentTimeMillis(),
+    val amountMl: Int = 0
+)
+
+data class ReminderSettings(
+    val waterReminderEnabled: Boolean = false,
+    val wakeUpTime: String = "07:00 AM",
+    val bedtime: String = "10:30 PM",
+    val intervalMins: Int = 60,
+    val workoutReminderEnabled: Boolean = false
+)
+
 data class UserProfile(
     val username: String = "",
     val name: String = "",
@@ -54,18 +74,26 @@ data class UserProfile(
     val bmiCategory: String = "Normal",
     val maintenanceCalories: Int = 2000,
     val fitnessGoal: String = "Maintain Weight",
+    val activityLevel: String = "Moderate Activity",
     val workoutFrequency: String = "6 Days a Week",
     val workoutSplit: String = "Push Pull Legs",
     val dailyCalorieGoal: Int = 2200,
     val dailyProteinGoal: Int = 120,
     val dailyStepGoal: Int = 10000,
+    val dailyWaterGoalLiters: Double = 4.0,
+    val lastWeekEndWeightKg: Double = 70.0,
     val avatarBase64: String? = null,
     val meals: List<Meal> = emptyList(),
     val loggedWorkouts: List<LoggedExercise> = emptyList(),
     val notifications: List<NotificationItem> = emptyList(),
     val customSchedule: List<CustomDayWorkout> = emptyList(),
-    val customExercises: List<String> = emptyList()
+    val customExercises: List<String> = emptyList(),
+    val weightLogs: List<WeightLogEntry> = emptyList(),
+    val waterLogs: List<WaterLogEntry> = emptyList(),
+    val reminderSettings: ReminderSettings = ReminderSettings(),
+    val todayCustomWorkoutList: List<String> = emptyList()
 )
+
 data class FoodItem(
     val id: String = "",
     val name: String = "",
