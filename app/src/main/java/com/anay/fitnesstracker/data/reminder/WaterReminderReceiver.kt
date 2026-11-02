@@ -7,21 +7,31 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.anay.fitnesstracker.MainActivity
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.SessionManager
-import com.anay.fitnesstracker.data.WaterLogEntry
+import com.anay.fitnesstracker.data.UserProfile
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class WaterReminderReceiver : BroadcastReceiver() {
 
     companion object {
+        const val TAG = "WaterReminderReceiver"
         const val CHANNEL_ID = "fitness_tracker_reminders"
-        const val CHANNEL_NAME = "Daily Reminders"
+        const val CHANNEL_NAME = "Hydration & Workout Reminders"
 
+        const val ACTION_TRIGGER_WATER = "com.anay.fitnesstracker.ACTION_TRIGGER_WATER"
+        const val ACTION_TRIGGER_WORKOUT = "com.anay.fitnesstracker.ACTION_TRIGGER_WORKOUT"
         const val ACTION_LOG_WATER = "com.anay.fitnesstracker.ACTION_LOG_WATER"
         const val ACTION_SNOOZE_WORKOUT = "com.anay.fitnesstracker.ACTION_SNOOZE_WORKOUT"
+
         const val EXTRA_AMOUNT_ML = "extra_amount_ml"
         const val EXTRA_NOTIFICATION_TYPE = "extra_notification_type"
 
@@ -33,29 +43,41 @@ class WaterReminderReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        val action = intent.action
+        Log.d(TAG, "Alarm triggered with action: $action")
+
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
         createNotificationChannel(notificationManager)
 
-        when (intent.action) {
+        when (action) {
             ACTION_LOG_WATER -> {
                 val amountMl = intent.getIntExtra(EXTRA_AMOUNT_ML, 250)
-                val sessionManager = SessionManager(context)
-                val username = sessionManager.getUsername()?.trim()?.lowercase()
-
-                if (!username.isNullOrBlank()) {
-                    val firestore = FirebaseFirestore.getInstance()
-                    val newEntry = mapOf(
-                        "timestamp" to System.currentTimeMillis(),
-                        "amountMl" to amountMl
-                    )
-                    firestore.collection("users").document(username)
-                        .update("waterLogs", FieldValue.arrayUnion(newEntry))
-                }
-
-                // Dismiss notification once quick-logged
                 notificationManager.cancel(NOTIFICATION_ID_WATER)
+
+                val pendingResult = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val session = SessionManager(context)
+                        val username = session.getUsername()?.trim()?.lowercase()
+                        if (!username.isNullOrBlank()) {
+                            val newEntry = mapOf(
+                                "timestamp" to System.currentTimeMillis(),
+                                "amountMl" to amountMl
+                            )
+                            FirebaseFirestore.getInstance()
+                                .collection("users")
+                                .document(username)
+                                .update("waterLogs", FieldValue.arrayUnion(newEntry))
+                                .await()
+                            Log.d(TAG, "Logged $amountMl ml from notification action.")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed logging water in background", e)
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
             }
 
             ACTION_SNOOZE_WORKOUT -> {
@@ -63,20 +85,52 @@ class WaterReminderReceiver : BroadcastReceiver() {
                 ReminderScheduler.scheduleWorkoutSnooze(context, 60)
             }
 
+            ACTION_TRIGGER_WORKOUT -> {
+                showWorkoutNotification(context, notificationManager)
+            }
+
             else -> {
-                val type = intent.getStringExtra(EXTRA_NOTIFICATION_TYPE) ?: TYPE_WATER
-                if (type == TYPE_WATER) {
-                    showWaterNotification(context, notificationManager)
-                    // Auto-schedule the next interval
-                    ReminderScheduler.rescheduleNextWaterReminder(context)
-                } else if (type == TYPE_WORKOUT) {
-                    showWorkoutNotification(context, notificationManager)
+                // Default: Trigger Water Reminder
+                showWaterNotification(context, notificationManager)
+
+                // Reschedule next water reminder based on user's interval
+                val pendingResult = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val session = SessionManager(context)
+                        val username = session.getUsername()?.trim()?.lowercase()
+                        if (!username.isNullOrBlank()) {
+                            val doc = FirebaseFirestore.getInstance()
+                                .collection("users")
+                                .document(username)
+                                .get()
+                                .await()
+                            val profile = doc.toObject(UserProfile::class.java)
+                            if (profile != null && profile.reminderSettings.waterReminderEnabled) {
+                                ReminderScheduler.scheduleWaterReminders(context, profile.reminderSettings)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error rescheduling next reminder", e)
+                    } finally {
+                        pendingResult.finish()
+                    }
                 }
             }
         }
     }
 
     private fun showWaterNotification(context: Context, manager: NotificationManager) {
+        val tapIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val tapPendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val action200 = createWaterAction(context, 200, 1)
         val action300 = createWaterAction(context, 300, 2)
         val action500 = createWaterAction(context, 500, 3)
@@ -84,8 +138,10 @@ class WaterReminderReceiver : BroadcastReceiver() {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_logo)
             .setContentTitle("Time to drink water 💧")
-            .setContentText("Stay hydrated! Tap to log your intake directly:")
+            .setContentText("Stay hydrated! Tap a pill below to log directly:")
+            .setContentIntent(tapPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .addAction(action200)
             .addAction(action300)
@@ -117,6 +173,7 @@ class WaterReminderReceiver : BroadcastReceiver() {
             .setContentTitle("Start your workout 🏋️")
             .setContentText("Your scheduled workout session is waiting for you!")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .addAction(snoozeAction)
             .build()
@@ -149,8 +206,9 @@ class WaterReminderReceiver : BroadcastReceiver() {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Hydration and workout reminders"
+                description = "Hydration and workout alerts"
                 enableVibration(true)
+                enableLights(true)
             }
             manager.createNotificationChannel(channel)
         }

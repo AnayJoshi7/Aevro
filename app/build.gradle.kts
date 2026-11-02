@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.anay.fitnesstracker"
-        minSdk = 30
+        minSdk = 31
         targetSdk = 37
         versionCode = 1
         versionName = "1.0.3"
@@ -24,6 +24,7 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("debug")
             optimization {
                 enable = false
             }
@@ -40,6 +41,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.compose.animation.core)
+    implementation(libs.androidx.compose.ui.text)
     // CameraX
     val cameraxVersion = "1.3.4"
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
@@ -63,6 +65,8 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.glance:glance-appwidget:1.1.0")
+    implementation("androidx.glance:glance-material3:1.1.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.18.0"))

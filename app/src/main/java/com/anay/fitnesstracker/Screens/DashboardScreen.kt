@@ -144,10 +144,12 @@ fun DashboardScreen(
 
     val stepGoal = user?.dailyStepGoal ?: 10_000
 
-    val stepsFraction =
-        (currentSteps.toFloat() / stepGoal).coerceIn(0f, 1f)
-
-    val stepsPercent = (stepsFraction * 100).toInt()
+    val stepsFraction by remember(stepGoal) {
+        derivedStateOf { (currentSteps.toFloat() / stepGoal).coerceIn(0f, 1f) }
+    }
+    val stepsPercent by remember {
+        derivedStateOf { (stepsFraction * 100).toInt() }
+    }
 
     // ---------- Today's totals & Workout resolution ----------
 

@@ -33,8 +33,10 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.draw.drawBehind
+
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.hazeEffect
 // ---------- Shared colors ----------
@@ -190,40 +192,41 @@ fun Modifier.figmaDropShadow(
 
 // ---------- Reusable glass surface modifier ----------
 
+private val DarkGlassBase = Color(0xFF223229)
+private val NaturalDropShadow = Color.Black.copy(alpha = 0.45f)
+
 fun Modifier.glassEffect(
     hazeState: HazeState? = null,
     blurRadius: Dp = 16.dp,
     cornerRadius: Dp = GlassDefaults.CornerRadius,
-    tint: Color = GlassDefaults.SurfaceTint,
+    tint: Color = DarkGlassBase,
     shadowEnabled: Boolean = true,
-    shadowColor: Color = GlassDefaults.ShadowColor
+    shadowColor: Color = NaturalDropShadow
 ): Modifier {
     val shape = RoundedCornerShape(cornerRadius)
 
-    val outerShadow =
-        if (shadowEnabled) {
-            Modifier.figmaDropShadow(
-                color = shadowColor,
-                blurRadius = GlassDefaults.ShadowRadius,
-                offsetX = 0.dp,
-                offsetY = GlassDefaults.ShadowOffsetY,
-                borderRadius = cornerRadius
-            )
-        } else {
-            Modifier
-        }
+    val outerShadow = if (shadowEnabled) {
+        Modifier.figmaDropShadow(
+            color = shadowColor,
+            blurRadius = 10.dp,
+            offsetX = 0.dp,
+            offsetY = 4.dp,
+            borderRadius = cornerRadius
+        )
+    } else {
+        Modifier
+    }
 
-    val backdrop =
-        if (hazeState != null) {
-            Modifier.hazeEffect(state = hazeState) {
-                this.blurRadius = blurRadius
-                backgroundColor = Color(0xFF0B0F14)
-                tints = emptyList()
-                noiseFactor = 0f
-            }
-        } else {
-            Modifier
+    val backdrop = if (hazeState != null) {
+        Modifier.hazeEffect(state = hazeState) {
+            this.blurRadius = blurRadius
+            backgroundColor = Color.Transparent
+            tints = emptyList()
+            noiseFactor = 0f
         }
+    } else {
+        Modifier
+    }
 
     return this
         .then(outerShadow)
@@ -236,61 +239,54 @@ fun Modifier.glassEffect(
         )
 }
 
-
 fun Modifier.glassSurface(
     cornerRadius: Dp = GlassDefaults.CornerRadius,
-    tint: Color = GlassDefaults.SurfaceTint,
-    borderWidth: Dp = GlassDefaults.BorderWidth,
-    shadowEnabled: Boolean = true
+    tint: Color = DarkGlassBase,
+    borderWidth: Dp = 1.dp,
+    shadowEnabled: Boolean = false
 ): Modifier {
     val shape = RoundedCornerShape(cornerRadius)
 
-    val shadowModifier =
-        if (shadowEnabled) {
-            Modifier.figmaDropShadow(
-                borderRadius = cornerRadius
-            )
-        } else {
-            Modifier
-        }
+    val shadowModifier = if (shadowEnabled) {
+        Modifier.figmaDropShadow(
+            color = NaturalDropShadow,
+            blurRadius = 8.dp,
+            borderRadius = cornerRadius
+        )
+    } else {
+        Modifier
+    }
 
     return this
-        // Shadow must be outside the surface clipping.
         .then(shadowModifier)
-        .clip(shape)
-        .background(tint)
-
-        // Bright upper inner edge.
+        // Semi-transparent deep dark background so blur shines through without washing out
+        .background(tint.copy(alpha = 0.70f))
+        // Subtle top specular edge highlight
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 4.dp,
+                radius = 2.dp,
                 spread = 0.dp,
-                color = GlassDefaults.InnerHighlight,
-                offset = DpOffset(0.dp, 2.dp)
+                color = Color.White.copy(alpha = 0.08f),
+                offset = DpOffset(0.dp, 1.dp)
             )
         )
-
-        // Subtle depth along the lower inner edge.
+        // Subtle bottom interior depth
         .innerShadow(
             shape = shape,
             shadow = Shadow(
-                radius = 6.dp,
+                radius = 3.dp,
                 spread = 0.dp,
-                color = GlassDefaults.InnerShade,
-                offset = DpOffset(0.dp, (-2).dp)
+                color = Color.Black.copy(alpha = 0.35f),
+                offset = DpOffset(0.dp, (-1).dp)
             )
         )
-
+        // Clean neon border
         .borderGradient(
             width = borderWidth,
             shape = shape
         )
 }
-
-// ---------- Reusable card ----------
-
-
 
 @Composable
 fun GlassCard(
@@ -299,7 +295,7 @@ fun GlassCard(
     blurRadius: Dp = 16.dp,
     cornerRadius: Dp = GlassDefaults.CornerRadius,
     contentPadding: PaddingValues = GlassDefaults.ContentPadding,
-    tint: Color = GlassDefaults.SurfaceTint,
+    tint: Color = DarkGlassBase,
     shadowEnabled: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
@@ -316,4 +312,3 @@ fun GlassCard(
         content = content
     )
 }
-

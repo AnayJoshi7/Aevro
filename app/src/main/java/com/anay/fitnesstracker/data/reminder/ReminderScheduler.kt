@@ -1,33 +1,44 @@
 package com.anay.fitnesstracker.data.reminder
 
-import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import com.anay.fitnesstracker.data.ReminderSettings
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
 import java.util.Locale
 
 object ReminderScheduler {
 
-    private val TIME_FORMATTER = DateTimeFormatter.ofPattern("hh:mm a", Locale.US)
+    private const val TAG = "ReminderScheduler"
+
+    // Lenient formatter to parse single-digit hours and case-insensitive AM/PM
+    private val TIME_FORMATTER = DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern("[h:mm a][hh:mm a][H:mm][HH:mm]")
+        .toFormatter(Locale.US)
+
+    private val DISPLAY_FORMATTER = DateTimeFormatter.ofPattern("hh:mm a", Locale.US)
 
     fun parseTime(timeStr: String): LocalTime {
+        val clean = timeStr.replace("\u00A0", " ").trim()
         return try {
-            LocalTime.parse(timeStr.trim().uppercase(), TIME_FORMATTER)
+            LocalTime.parse(clean, TIME_FORMATTER)
         } catch (e: Exception) {
+            Log.w(TAG, "Failed parsing '$timeStr', fallback to 08:00 AM", e)
             LocalTime.of(8, 0)
         }
     }
 
     fun formatTime(time: LocalTime): String {
-        return time.format(TIME_FORMATTER)
+        return time.format(DISPLAY_FORMATTER)
     }
 
     fun getNextReminderTime(settings: ReminderSettings): String {
@@ -36,36 +47,30 @@ object ReminderScheduler {
         val now = LocalTime.now()
         val wake = parseTime(settings.wakeUpTime)
         val bed = parseTime(settings.bedtime)
-        val interval = settings.intervalMins.toLong()
+        val interval = settings.intervalMins.toLong().coerceAtLeast(15)
 
-        // If currently before wake-up, next reminder is wake-up time
-        if (now.isBefore(wake)) {
-            return formatTime(wake)
-        }
-
-        // If currently after bedtime, next reminder is tomorrow's wake-up time
-        if (now.isAfter(bed)) {
-            return "${formatTime(wake)} (Tomorrow)"
-        }
-
-        // Step from wake-up until the first slot after now
-        var next = wake
-        while (!next.isAfter(bed) && !next.isAfter(now)) {
-            next = next.plusMinutes(interval)
-        }
-
-        return if (!next.isAfter(bed)) {
-            formatTime(next)
-        } else {
+        return if (now.isBefore(wake)) {
+            formatTime(wake)
+        } else if (now.isAfter(bed)) {
             "${formatTime(wake)} (Tomorrow)"
+        } else {
+            var step = wake
+            while (!step.isAfter(bed) && !step.isAfter(now)) {
+                step = step.plusMinutes(interval)
+            }
+            if (!step.isAfter(bed)) {
+                formatTime(step)
+            } else {
+                "${formatTime(wake)} (Tomorrow)"
+            }
         }
     }
 
-    @SuppressLint("ScheduleExactAlarm")
     fun scheduleWaterReminders(context: Context, settings: ReminderSettings) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         val intent = Intent(context, WaterReminderReceiver::class.java).apply {
+            action = WaterReminderReceiver.ACTION_TRIGGER_WATER
             putExtra(WaterReminderReceiver.EXTRA_NOTIFICATION_TYPE, WaterReminderReceiver.TYPE_WATER)
         }
         val pendingIntent = PendingIntent.getBroadcast(
@@ -77,49 +82,46 @@ object ReminderScheduler {
 
         if (!settings.waterReminderEnabled) {
             alarmManager.cancel(pendingIntent)
+            Log.d(TAG, "Water reminder cancelled.")
             return
         }
 
         val now = LocalDateTime.now()
         val wake = parseTime(settings.wakeUpTime)
         val bed = parseTime(settings.bedtime)
+        val interval = settings.intervalMins.toLong().coerceAtLeast(15)
 
-        var nextTime = LocalDateTime.of(LocalDate.now(), wake)
-        if (LocalTime.now().isAfter(wake)) {
-            while (!nextTime.toLocalTime().isAfter(bed) && !nextTime.isAfter(now)) {
-                nextTime = nextTime.plusMinutes(settings.intervalMins.toLong())
-            }
-            if (nextTime.toLocalTime().isAfter(bed)) {
-                nextTime = LocalDateTime.of(LocalDate.now().plusDays(1), wake)
-            }
-        }
+        var triggerDateTime: LocalDateTime
 
-        val triggerEpoch = nextTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
+        if (now.toLocalTime().isBefore(wake)) {
+            // Today at wake-up time
+            triggerDateTime = LocalDateTime.of(LocalDate.now(), wake)
+        } else if (now.toLocalTime().isAfter(bed)) {
+            // Tomorrow at wake-up time
+            triggerDateTime = LocalDateTime.of(LocalDate.now().plusDays(1), wake)
         } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
-        }
-    }
-
-    fun rescheduleNextWaterReminder(context: Context) {
-        val sessionManager = com.anay.fitnesstracker.data.SessionManager(context)
-        val username = sessionManager.getUsername()?.trim()?.lowercase() ?: return
-
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-            .collection("users").document(username).get()
-            .addOnSuccessListener { doc ->
-                val profile = doc.toObject(com.anay.fitnesstracker.data.UserProfile::class.java)
-                if (profile != null && profile.reminderSettings.waterReminderEnabled) {
-                    scheduleWaterReminders(context, profile.reminderSettings)
-                }
+            // In-between: step from wake-up until the first point strictly in the future
+            var step = LocalDateTime.of(LocalDate.now(), wake)
+            while (!step.toLocalTime().isAfter(bed) && !step.isAfter(now)) {
+                step = step.plusMinutes(interval)
             }
+            triggerDateTime = if (!step.toLocalTime().isAfter(bed)) {
+                step
+            } else {
+                LocalDateTime.of(LocalDate.now().plusDays(1), wake)
+            }
+        }
+
+        val triggerEpoch = triggerDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        Log.d(TAG, "Scheduling next water reminder for: $triggerDateTime ($triggerEpoch)")
+
+        setAlarm(alarmManager, triggerEpoch, pendingIntent)
     }
 
     fun scheduleWorkoutReminder(context: Context, enabled: Boolean) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, WaterReminderReceiver::class.java).apply {
+            action = WaterReminderReceiver.ACTION_TRIGGER_WORKOUT
             putExtra(WaterReminderReceiver.EXTRA_NOTIFICATION_TYPE, WaterReminderReceiver.TYPE_WORKOUT)
         }
         val pendingIntent = PendingIntent.getBroadcast(
@@ -134,25 +136,19 @@ object ReminderScheduler {
             return
         }
 
-        // Daily workout prompt at 08:00 AM
         var triggerTime = LocalDateTime.of(LocalDate.now(), LocalTime.of(8, 0))
         if (LocalDateTime.now().isAfter(triggerTime)) {
             triggerTime = triggerTime.plusDays(1)
         }
 
         val triggerEpoch = triggerTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        alarmManager.setInexactRepeating(
-            AlarmManager.RTC_WAKEUP,
-            triggerEpoch,
-            AlarmManager.INTERVAL_DAY,
-            pendingIntent
-        )
+        setAlarm(alarmManager, triggerEpoch, pendingIntent)
     }
 
-    @SuppressLint("ScheduleExactAlarm")
     fun scheduleWorkoutSnooze(context: Context, minutes: Int) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, WaterReminderReceiver::class.java).apply {
+            action = WaterReminderReceiver.ACTION_TRIGGER_WORKOUT
             putExtra(WaterReminderReceiver.EXTRA_NOTIFICATION_TYPE, WaterReminderReceiver.TYPE_WORKOUT)
         }
         val pendingIntent = PendingIntent.getBroadcast(
@@ -163,10 +159,26 @@ object ReminderScheduler {
         )
 
         val triggerEpoch = System.currentTimeMillis() + (minutes * 60 * 1000L)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
+        setAlarm(alarmManager, triggerEpoch, pendingIntent)
+    }
+
+    private fun setAlarm(alarmManager: AlarmManager, triggerEpoch: Long, pendingIntent: PendingIntent) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
+                } else {
+                    // Fallback to inexact if exact alarm permission was denied by the user
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Exact alarm permission missing, falling back", e)
+            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerEpoch, pendingIntent)
         }
     }
 }

@@ -114,7 +114,6 @@ fun CustomReminderScreen(
         }
     }
 
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -124,7 +123,7 @@ fun CustomReminderScreen(
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Create Reminders",
@@ -133,7 +132,7 @@ fun CustomReminderScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         // Background Optimization Prompt Pill
         if (!isIgnoringBattery && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -153,13 +152,13 @@ fun CustomReminderScreen(
                     .padding(14.dp)
             ) {
                 Text(
-                    text = "Allow app to run in background for reliable alarm delivery (Tap to enable)",
+                    text = "⚡ Allow app to run in background for reliable alarm delivery (Tap to enable)",
                     color = PrimaryGreen,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(14.dp))
         }
 
         // 1. Water Intake Reminder Card
@@ -207,6 +206,7 @@ fun CustomReminderScreen(
                                         bedtime = bedtime,
                                         intervalMins = selectedInterval
                                     )
+                                    waterReminderEnabled = true
                                     viewModel.updateReminderSettings(newSettings)
                                     ReminderScheduler.scheduleWaterReminders(context, newSettings)
                                 }

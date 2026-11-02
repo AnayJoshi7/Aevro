@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
+import androidx.glance.appwidget.updateAll
+import com.anay.fitnesstracker.data.widget.TodayStatsWidget
 
 class StepSensorManager(context: Context) : SensorEventListener {
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -30,6 +32,9 @@ class StepSensorManager(context: Context) : SensorEventListener {
                 SensorManager.SENSOR_DELAY_UI
             )
         }
+    }
+    suspend fun triggerWidgetUpdate(context: Context) {
+        TodayStatsWidget().updateAll(context)
     }
 
     fun stopListening() {
