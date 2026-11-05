@@ -74,17 +74,7 @@ fun CustomReminderScreen(
     var showBedPicker by remember { mutableStateOf(false) }
 
     // Dynamic next reminder calculation
-    val nextReminderDisplay = remember(saved, wakeUpTime, bedtime, selectedInterval, waterReminderEnabled) {
-        if (!waterReminderEnabled) "Disabled"
-        else ReminderScheduler.getNextReminderTime(
-            saved.copy(
-                waterReminderEnabled = true,
-                wakeUpTime = wakeUpTime,
-                bedtime = bedtime,
-                intervalMins = selectedInterval
-            )
-        )
-    }
+
 
     // Permission handling
     val notifPermissionLauncher = rememberLauncherForActivityResult(
@@ -95,14 +85,36 @@ fun CustomReminderScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
+    var timeTick by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(waterReminderEnabled, wakeUpTime, bedtime, selectedInterval) {
+        val activeSettings = saved.copy(
+            waterReminderEnabled = waterReminderEnabled,
+            wakeUpTime = wakeUpTime,
+            bedtime = bedtime,
+            intervalMins = selectedInterval,
+            workoutReminderEnabled = workoutReminderEnabled
+        )
+        ReminderScheduler.saveSettingsLocally(context, activeSettings)
+        if (waterReminderEnabled) {
+            ReminderScheduler.scheduleWaterReminders(context, activeSettings)
         }
+        while (true) {
+            kotlinx.coroutines.delay(15_000L)
+            timeTick = System.currentTimeMillis()
+        }
+    }
+
+    val nextReminderDisplay = remember(saved, wakeUpTime, bedtime, selectedInterval, waterReminderEnabled, timeTick) {
+        if (!waterReminderEnabled) "Disabled"
+        else ReminderScheduler.getNextReminderTime(
+            saved.copy(
+                waterReminderEnabled = true,
+                wakeUpTime = wakeUpTime,
+                bedtime = bedtime,
+                intervalMins = selectedInterval
+            )
+        )
     }
 
     val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as? PowerManager }

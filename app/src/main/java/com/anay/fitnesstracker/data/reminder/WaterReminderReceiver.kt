@@ -1,5 +1,6 @@
 package com.anay.fitnesstracker.data.reminder
 
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,19 +13,15 @@ import androidx.core.app.NotificationCompat
 import com.anay.fitnesstracker.MainActivity
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.SessionManager
-import com.anay.fitnesstracker.data.UserProfile
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import java.time.LocalDateTime
 
 class WaterReminderReceiver : BroadcastReceiver() {
 
     companion object {
         const val TAG = "WaterReminderReceiver"
-        const val CHANNEL_ID = "fitness_tracker_reminders"
+        const val CHANNEL_ID = "fitness_tracker_reminders_v2"
         const val CHANNEL_NAME = "Hydration & Workout Reminders"
 
         const val ACTION_TRIGGER_WATER = "com.anay.fitnesstracker.ACTION_TRIGGER_WATER"
@@ -44,83 +41,93 @@ class WaterReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
-        Log.d(TAG, "Alarm triggered with action: $action")
+        Log.d(TAG, "onReceive triggered with action: $action")
 
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel(notificationManager)
 
+        val localSettings = ReminderScheduler.loadSettingsLocally(context)
+
         when (action) {
+            // 1. System Time / Date / Timezone / Boot changed
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED -> {
+                if (localSettings.waterReminderEnabled) {
+                    val now = LocalDateTime.now()
+                    if (action == Intent.ACTION_TIME_CHANGED &&
+                        ReminderScheduler.isCurrentlyOnActiveSlot(localSettings, now)
+                    ) {
+                        // User just set the clock to an exact slot (e.g., 05:00 AM) -> fire notification & schedule next!
+                        showWaterNotification(context, notificationManager)
+                        ReminderScheduler.scheduleWaterReminders(context, localSettings, skipCurrentMinute = true)
+                    } else {
+                        // Recalculate alarm for the new date/time so it never gets stranded in the future
+                        ReminderScheduler.scheduleWaterReminders(context, localSettings, skipCurrentMinute = false)
+                    }
+                }
+                if (localSettings.workoutReminderEnabled) {
+                    ReminderScheduler.scheduleWorkoutReminder(context, true)
+                }
+            }
+
+            // 2. Quick-log pill clicked (+200ml, +300ml, +500ml)
             ACTION_LOG_WATER -> {
                 val amountMl = intent.getIntExtra(EXTRA_AMOUNT_ML, 250)
                 notificationManager.cancel(NOTIFICATION_ID_WATER)
 
-                val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val session = SessionManager(context)
-                        val username = session.getUsername()?.trim()?.lowercase()
-                        if (!username.isNullOrBlank()) {
-                            val newEntry = mapOf(
-                                "timestamp" to System.currentTimeMillis(),
-                                "amountMl" to amountMl
-                            )
-                            FirebaseFirestore.getInstance()
-                                .collection("users")
-                                .document(username)
-                                .update("waterLogs", FieldValue.arrayUnion(newEntry))
-                                .await()
-                            Log.d(TAG, "Logged $amountMl ml from notification action.")
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed logging water in background", e)
-                    } finally {
-                        pendingResult.finish()
-                    }
+                val session = SessionManager(context)
+                val username = session.getUsername()?.trim()?.lowercase()
+                if (!username.isNullOrBlank()) {
+                    val newEntry = mapOf(
+                        "timestamp" to System.currentTimeMillis(),
+                        "amountMl" to amountMl
+                    )
+                    // Writes immediately to local Firestore SQLite cache & syncs when online
+                    FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(username)
+                        .update("waterLogs", FieldValue.arrayUnion(newEntry))
                 }
             }
 
+            // 3. Snooze Workout clicked
             ACTION_SNOOZE_WORKOUT -> {
                 notificationManager.cancel(NOTIFICATION_ID_WORKOUT)
                 ReminderScheduler.scheduleWorkoutSnooze(context, 60)
             }
 
+            // 4. Daily Workout Reminder triggered
             ACTION_TRIGGER_WORKOUT -> {
                 showWorkoutNotification(context, notificationManager)
+                if (localSettings.workoutReminderEnabled) {
+                    ReminderScheduler.scheduleWorkoutReminder(context, true)
+                }
             }
 
-            else -> {
-                // Default: Trigger Water Reminder
+            // 5. Water Reminder Alarm triggered
+            ACTION_TRIGGER_WATER -> {
+                if (!localSettings.waterReminderEnabled) return
+
+                // Display notification
                 showWaterNotification(context, notificationManager)
 
-                // Reschedule next water reminder based on user's interval
-                val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val session = SessionManager(context)
-                        val username = session.getUsername()?.trim()?.lowercase()
-                        if (!username.isNullOrBlank()) {
-                            val doc = FirebaseFirestore.getInstance()
-                                .collection("users")
-                                .document(username)
-                                .get()
-                                .await()
-                            val profile = doc.toObject(UserProfile::class.java)
-                            if (profile != null && profile.reminderSettings.waterReminderEnabled) {
-                                ReminderScheduler.scheduleWaterReminders(context, profile.reminderSettings)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error rescheduling next reminder", e)
-                    } finally {
-                        pendingResult.finish()
-                    }
-                }
+                // Immediately schedule the next slot synchronously from local settings (0 network delay)
+                ReminderScheduler.scheduleWaterReminders(
+                    context = context,
+                    settings = localSettings,
+                    skipCurrentMinute = true
+                )
             }
         }
     }
 
     private fun showWaterNotification(context: Context, manager: NotificationManager) {
+        // Cancel existing notification first so the new one always alerts with sound & heads-up banner
+        manager.cancel(NOTIFICATION_ID_WATER)
+
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -141,7 +148,9 @@ class WaterReminderReceiver : BroadcastReceiver() {
             .setContentText("Stay hydrated! Tap a pill below to log directly:")
             .setContentIntent(tapPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setOnlyAlertOnce(false)
             .setAutoCancel(true)
             .addAction(action200)
             .addAction(action300)
@@ -152,6 +161,8 @@ class WaterReminderReceiver : BroadcastReceiver() {
     }
 
     private fun showWorkoutNotification(context: Context, manager: NotificationManager) {
+        manager.cancel(NOTIFICATION_ID_WORKOUT)
+
         val snoozeIntent = Intent(context, WaterReminderReceiver::class.java).apply {
             action = ACTION_SNOOZE_WORKOUT
         }
@@ -173,7 +184,9 @@ class WaterReminderReceiver : BroadcastReceiver() {
             .setContentTitle("Start your workout 🏋️")
             .setContentText("Your scheduled workout session is waiting for you!")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setOnlyAlertOnce(false)
             .setAutoCancel(true)
             .addAction(snoozeAction)
             .build()

@@ -1,11 +1,14 @@
 package com.anay.fitnesstracker.Screens
 
+import android.content.Context
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,7 +33,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -43,10 +50,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.*
-import com.anay.fitnesstracker.data.WorkoutScheduleHelper
-import com.anay.fitnesstracker.data.WorkoutSet
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -65,6 +74,145 @@ enum class WorkoutLogMode {
     WEIGHTS, CARDIO
 }
 
+enum class TimerPhase {
+    IDLE, WORKOUT, REST
+}
+
+data class DailyTimerStats(
+    val date: String = LocalDate.now().toString(),
+    val totalWorkoutSeconds: Long = 0L,
+    val totalRestSeconds: Long = 0L
+)
+
+/**
+ * Manages live Workout / Rest timer states and persists completed daily totals
+ * so they survive navigation and reflect immediately on DashboardScreen.
+ */
+object WorkoutTimerManager {
+    private const val PREFS_NAME = "workout_timer_stats_prefs"
+    private const val KEY_DATE = "stats_date"
+    private const val KEY_WORKOUT_SECS = "total_workout_secs"
+    private const val KEY_REST_SECS = "total_rest_secs"
+    private const val KEY_CUSTOM_LIST_DATE = "custom_workout_list_date"
+    private const val KEY_CUSTOM_LIST_TITLE = "custom_workout_list_title"
+
+    private val _dailyStats = MutableStateFlow(DailyTimerStats())
+    val dailyStats: StateFlow<DailyTimerStats> = _dailyStats.asStateFlow()
+
+    // Active session state (preserved when navigating between screens)
+    var phase by mutableStateOf(TimerPhase.IDLE)
+        private set
+    var sessionWorkoutSeconds by mutableLongStateOf(0L)
+        private set
+    var currentRestSeconds by mutableLongStateOf(0L)
+        private set
+    var sessionTotalRestSeconds by mutableLongStateOf(0L)
+        private set
+
+    private var lastTickRealtime: Long = 0L
+
+    fun loadDailyStats(context: Context, username: String?) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val userKey = username?.trim()?.lowercase().orEmpty()
+        val today = LocalDate.now().toString()
+        val savedDate = prefs.getString("${userKey}_$KEY_DATE", "") ?: ""
+
+        if (savedDate == today) {
+            _dailyStats.value = DailyTimerStats(
+                date = today,
+                totalWorkoutSeconds = prefs.getLong("${userKey}_$KEY_WORKOUT_SECS", 0L),
+                totalRestSeconds = prefs.getLong("${userKey}_$KEY_REST_SECS", 0L)
+            )
+        } else {
+            _dailyStats.value = DailyTimerStats(date = today, totalWorkoutSeconds = 0L, totalRestSeconds = 0L)
+        }
+    }
+
+    fun togglePlayPause() {
+        lastTickRealtime = SystemClock.elapsedRealtime()
+        when (phase) {
+            TimerPhase.IDLE -> {
+                phase = TimerPhase.WORKOUT
+            }
+            TimerPhase.WORKOUT -> {
+                // Pause workout -> Switch to Rest Time and reset current rest display to 0
+                phase = TimerPhase.REST
+                currentRestSeconds = 0L
+            }
+            TimerPhase.REST -> {
+                // Resume workout -> Continue workout timer from where it left off
+                phase = TimerPhase.WORKOUT
+            }
+        }
+    }
+
+    fun onTick() {
+        if (phase == TimerPhase.IDLE) return
+        val now = SystemClock.elapsedRealtime()
+        val elapsedSecs = ((now - lastTickRealtime) / 1000L).coerceAtLeast(1L)
+        lastTickRealtime = now
+
+        if (phase == TimerPhase.WORKOUT) {
+            sessionWorkoutSeconds += elapsedSecs
+        } else if (phase == TimerPhase.REST) {
+            currentRestSeconds += elapsedSecs
+            sessionTotalRestSeconds += elapsedSecs
+        }
+    }
+
+    fun endSessionAndSave(context: Context, username: String?): Boolean {
+        val hasRecordedTime = sessionWorkoutSeconds > 0L || sessionTotalRestSeconds > 0L || phase != TimerPhase.IDLE
+        if (!hasRecordedTime) return false
+
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val userKey = username?.trim()?.lowercase().orEmpty()
+        val today = LocalDate.now().toString()
+        val savedDate = prefs.getString("${userKey}_$KEY_DATE", "") ?: ""
+
+        val prevWorkout = if (savedDate == today) prefs.getLong("${userKey}_$KEY_WORKOUT_SECS", 0L) else 0L
+        val prevRest = if (savedDate == today) prefs.getLong("${userKey}_$KEY_REST_SECS", 0L) else 0L
+
+        val newWorkoutTotal = prevWorkout + sessionWorkoutSeconds
+        val newRestTotal = prevRest + sessionTotalRestSeconds
+
+        prefs.edit()
+            .putString("${userKey}_$KEY_DATE", today)
+            .putLong("${userKey}_$KEY_WORKOUT_SECS", newWorkoutTotal)
+            .putLong("${userKey}_$KEY_REST_SECS", newRestTotal)
+            .apply()
+
+        _dailyStats.value = DailyTimerStats(
+            date = today,
+            totalWorkoutSeconds = newWorkoutTotal,
+            totalRestSeconds = newRestTotal
+        )
+
+        // Reset session counters
+        phase = TimerPhase.IDLE
+        sessionWorkoutSeconds = 0L
+        currentRestSeconds = 0L
+        sessionTotalRestSeconds = 0L
+        return true
+    }
+
+    fun markCustomWorkoutListModifiedToday(context: Context, username: String?, workoutTitle: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val userKey = username?.trim()?.lowercase().orEmpty()
+        prefs.edit()
+            .putString("${userKey}_$KEY_CUSTOM_LIST_DATE", LocalDate.now().toString())
+            .putString("${userKey}_$KEY_CUSTOM_LIST_TITLE", workoutTitle)
+            .apply()
+    }
+
+    fun isCustomWorkoutListModifiedToday(context: Context, username: String?, workoutTitle: String): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val userKey = username?.trim()?.lowercase().orEmpty()
+        val savedDate = prefs.getString("${userKey}_$KEY_CUSTOM_LIST_DATE", "")
+        val savedTitle = prefs.getString("${userKey}_$KEY_CUSTOM_LIST_TITLE", "")
+        return savedDate == LocalDate.now().toString() && savedTitle == workoutTitle
+    }
+}
+
 @Composable
 fun LogWorkoutScreen(
     viewModel: FitnessViewModel,
@@ -73,6 +221,14 @@ fun LogWorkoutScreen(
     val context = LocalContext.current
     val user by viewModel.currentUser.collectAsState()
     val allLogged = user?.loggedWorkouts ?: emptyList()
+
+    // Tick coroutine for active Workout / Rest timer
+    LaunchedEffect(WorkoutTimerManager.phase) {
+        while (WorkoutTimerManager.phase != TimerPhase.IDLE) {
+            delay(1000L)
+            WorkoutTimerManager.onTick()
+        }
+    }
 
     val todayWorkout = remember(user?.workoutFrequency, user?.workoutSplit, user?.customSchedule) {
         WorkoutScheduleHelper.getTodayWorkout(user)
@@ -172,7 +328,29 @@ fun LogWorkoutScreen(
             Text("Back", color = PrimaryGreen, fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // ================== WORKOUT & REST TIMER CARD ==================
+        WorkoutTimerCard(
+            phase = WorkoutTimerManager.phase,
+            workoutSeconds = WorkoutTimerManager.sessionWorkoutSeconds,
+            restSeconds = WorkoutTimerManager.currentRestSeconds,
+            onPlayPauseClick = {
+                WorkoutTimerManager.togglePlayPause()
+            },
+            onEndClick = {
+                val saved = WorkoutTimerManager.endSessionAndSave(context, user?.username)
+                if (saved) {
+                    Toast.makeText(
+                        context,
+                        "Workout ended! Total workout & rest time saved.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         Text(
             text = "Log Your Workout",
@@ -799,7 +977,7 @@ fun LogWorkoutScreen(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-// Logged Exercises Header
+        // Logged Exercises Header
         Text(
             text = "Logged Exercises",
             color = TextWhite,
@@ -825,14 +1003,12 @@ fun LogWorkoutScreen(
             todayLogged.forEach { exercise ->
                 val isCardioExercise = exercise.category.equals("Cardio", ignoreCase = true)
 
-                // Search for previous logging of this exact exercise (case-insensitive)[cite: 5]
                 val previousLog = remember(allLogged, exercise.exerciseName) {
                     allLogged
                         .filter { it.id != exercise.id && it.exerciseName.trim().equals(exercise.exerciseName.trim(), ignoreCase = true) }
                         .maxByOrNull { it.timestamp }
                 }
 
-                // Compute progression delta badge[cite: 5]
                 val progressBadgeText = remember(exercise, previousLog) {
                     if (previousLog == null) null
                     else {
@@ -885,7 +1061,6 @@ fun LogWorkoutScreen(
                     }
                     Spacer(modifier = Modifier.height(14.dp))
                 } else {
-                    // Full comparison card matching your mockup design[cite: 5]
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -894,7 +1069,6 @@ fun LogWorkoutScreen(
                             .border(1.dp, CardBorderColor, RoundedCornerShape(22.dp))
                             .padding(18.dp)
                     ) {
-                        // Current Log Header[cite: 5]
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -938,7 +1112,6 @@ fun LogWorkoutScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Current Sets[cite: 5]
                         exercise.sets.forEach { set ->
                             Row(
                                 modifier = Modifier
@@ -952,7 +1125,6 @@ fun LogWorkoutScreen(
                             }
                         }
 
-                        // Previous Sets (Sub-box inside card)[cite: 5]
                         if (previousLog != null) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text("Previous", color = Color(0xFF7D8C83), fontSize = 15.sp, fontWeight = FontWeight.Bold)
@@ -1014,6 +1186,150 @@ fun LogWorkoutScreen(
 }
 
 @Composable
+private fun WorkoutTimerCard(
+    phase: TimerPhase,
+    workoutSeconds: Long,
+    restSeconds: Long,
+    onPlayPauseClick: () -> Unit,
+    onEndClick: () -> Unit
+) {
+    // Show current rest seconds when paused in REST mode, otherwise show accumulated workout seconds
+    val activeSeconds = if (phase == TimerPhase.REST) restSeconds else workoutSeconds
+    val hours = activeSeconds / 3600
+    val minutes = (activeSeconds % 3600) / 60
+    val seconds = activeSeconds % 60
+
+    val headerLabel = when (phase) {
+        TimerPhase.REST -> "Rest Time"
+        TimerPhase.WORKOUT -> "Workout Time"
+        TimerPhase.IDLE -> "Workout Timer"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(CardDarkBg)
+            .border(1.dp, CardBorderColor, RoundedCornerShape(24.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Text(
+            text = headerLabel,
+            color = PrimaryGreen,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TimerUnitPill(text = "${hours}h", modifier = Modifier.weight(1f))
+            TimerUnitPill(text = "${minutes}m", modifier = Modifier.weight(1f))
+            TimerUnitPill(text = "${seconds}s", modifier = Modifier.weight(1f))
+
+            // Play/Pause + Red Stop Control Pill
+            Row(
+                modifier = Modifier
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF0F1E16))
+                    .border(1.dp, CardBorderColor, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Play (Triangle) / Pause Toggle Button
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onPlayPauseClick
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(18.dp)) {
+                        if (phase == TimerPhase.WORKOUT) {
+                            // Draw Green Pause Bars
+                            val barWidth = size.width * 0.28f
+                            val barHeight = size.height * 0.85f
+                            val topOffset = (size.height - barHeight) / 2f
+                            drawRoundRect(
+                                color = PrimaryGreen,
+                                topLeft = Offset(size.width * 0.14f, topOffset),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(4f, 4f)
+                            )
+                            drawRoundRect(
+                                color = PrimaryGreen,
+                                topLeft = Offset(size.width * 0.58f, topOffset),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(4f, 4f)
+                            )
+                        } else {
+                            // Draw Green Play Triangle
+                            val path = Path().apply {
+                                moveTo(size.width * 0.15f, size.height * 0.08f)
+                                lineTo(size.width * 0.92f, size.height * 0.50f)
+                                lineTo(size.width * 0.15f, size.height * 0.92f)
+                                close()
+                            }
+                            drawPath(path = path, color = PrimaryGreen)
+                        }
+                    }
+                }
+
+                // End (Red Square) Button
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onEndClick
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFFFF0000))
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimerUnitPill(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(PillGrayBg)
+            .border(1.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(14.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = Color.Black,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 private fun EditExerciseDialog(
     workout: LoggedExercise,
     isKg: Boolean,
@@ -1069,7 +1385,6 @@ private fun EditExerciseDialog(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Exercise Name Field
             Text("Exercise Name", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(6.dp))
             Box(
@@ -1143,7 +1458,6 @@ private fun EditExerciseDialog(
                                 textAlign = TextAlign.Center
                             )
 
-                            // Weight input
                             Box(
                                 modifier = Modifier
                                     .weight(1.3f)
@@ -1168,7 +1482,6 @@ private fun EditExerciseDialog(
 
                             Spacer(modifier = Modifier.width(6.dp))
 
-                            // Reps input
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -1193,7 +1506,6 @@ private fun EditExerciseDialog(
 
                             Spacer(modifier = Modifier.width(6.dp))
 
-                            // Delete Set
                             IconButton(
                                 onClick = {
                                     if (editableSets.size > 1) {
@@ -1212,7 +1524,6 @@ private fun EditExerciseDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // + Add Set Button
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1236,7 +1547,6 @@ private fun EditExerciseDialog(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)

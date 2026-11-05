@@ -37,7 +37,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -52,11 +51,10 @@ import com.anay.fitnesstracker.ui.theme.PrimaryGreen
 import com.anay.fitnesstracker.ui.theme.TextMuted
 import com.anay.fitnesstracker.ui.theme.TextWhite
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
-import com.anay.fitnesstracker.ui.theme.borderGradient
-import com.anay.fitnesstracker.ui.theme.glassEffect
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
@@ -72,7 +70,28 @@ fun DashboardScreen(
 
     val user by fitnessViewModel.currentUser.collectAsState()
     val calorieTarget = user?.dailyCalorieGoal ?: 2400
-    val todayWorkout = WorkoutScheduleHelper.getTodayWorkout(user)
+
+    val todayDate = LocalDate.now()
+    val systemZone = remember { ZoneId.systemDefault() }
+
+    val todayWorkout = remember(user, todayDate) {
+        WorkoutScheduleHelper.getTodayWorkout(user)
+    }
+
+    // Load & observe daily workout/rest timer totals
+    LaunchedEffect(user?.username, todayDate) {
+        WorkoutTimerManager.loadDailyStats(context, user?.username)
+    }
+    val dailyTimerStats by WorkoutTimerManager.dailyStats.collectAsState()
+
+    val workoutTimeMins = remember(dailyTimerStats.totalWorkoutSeconds) {
+        val secs = dailyTimerStats.totalWorkoutSeconds
+        if (secs in 1..59) 1 else (secs / 60).toInt()
+    }
+    val restTimeMins = remember(dailyTimerStats.totalRestSeconds) {
+        val secs = dailyTimerStats.totalRestSeconds
+        if (secs in 1..59) 1 else (secs / 60).toInt()
+    }
 
     // Dialog & Expansion states
     var showWaterDialog by remember { mutableStateOf(false) }
@@ -151,26 +170,65 @@ fun DashboardScreen(
         derivedStateOf { (stepsFraction * 100).toInt() }
     }
 
-    // ---------- Today's totals & Workout resolution ----------
+    // ---------- Today's totals & Current Day Workout resolution ----------
 
-    val startOfTodayMillis = remember {
-        LocalDate.now()
-            .atStartOfDay(ZoneId.systemDefault())
+    val startOfTodayMillis = remember(todayDate) {
+        todayDate
+            .atStartOfDay(systemZone)
             .toInstant()
             .toEpochMilli()
     }
 
-    val plannedExercises = remember(user?.todayCustomWorkoutList, todayWorkout) {
-        if (!user?.todayCustomWorkoutList.isNullOrEmpty()) {
-            user!!.todayCustomWorkoutList
+    // Track local deletions for today so stale custom lists from previous days never override today's split
+    var deletedTodayExercises by remember(todayDate, todayWorkout.title) {
+        mutableStateOf(setOf<String>())
+    }
+
+    val baseTodayExercises = remember(user, todayWorkout, todayDate) {
+        WorkoutScheduleHelper.getTodayExercises(user)
+    }
+
+    val plannedExercises = remember(
+        user,
+        user?.todayCustomWorkoutList,
+        baseTodayExercises,
+        todayWorkout.title,
+        todayDate,
+        deletedTodayExercises
+    ) {
+        val savedCustom = user?.todayCustomWorkoutList.orEmpty()
+        val wasModifiedToday = WorkoutTimerManager.isCustomWorkoutListModifiedToday(
+            context = context,
+            username = user?.username,
+            workoutTitle = todayWorkout.title
+        )
+        // Only use todayCustomWorkoutList if it was modified today or is a valid subset of today's scheduled workout
+        val isSubsetOfToday = savedCustom.isNotEmpty() && savedCustom.all { item ->
+            baseTodayExercises.any { it.trim().equals(item.trim(), ignoreCase = true) }
+        }
+
+        val activeList = if (savedCustom.isNotEmpty() && (wasModifiedToday || isSubsetOfToday)) {
+            savedCustom
         } else {
-            WorkoutScheduleHelper.getTodayExercises(user)
+            baseTodayExercises
+        }
+
+        activeList.filter { ex ->
+            !deletedTodayExercises.contains(ex.trim().lowercase())
         }
     }
 
-    val completedExercisesList = remember(user?.loggedWorkouts, startOfTodayMillis) {
+    val completedExercisesList = remember(user?.loggedWorkouts, todayDate) {
         user?.loggedWorkouts
-            ?.filter { it.timestamp >= startOfTodayMillis }
+            ?.filter { workout ->
+                val millis = if (workout.timestamp < 100_000_000_000L) {
+                    workout.timestamp * 1000L
+                } else {
+                    workout.timestamp
+                }
+                val workoutDate = Instant.ofEpochMilli(millis).atZone(systemZone).toLocalDate()
+                workoutDate == todayDate
+            }
             ?.map { it.exerciseName.trim().lowercase() }
             ?.distinct() ?: emptyList()
     }
@@ -182,10 +240,22 @@ fun DashboardScreen(
     }
 
     val completedExercisesToday = completedExercisesList.size
-    val targetExercisesToday = plannedExercises.size.coerceAtLeast(1)
+    val targetExercisesToday = (completedExercisesToday + remainingExercises.size)
+        .coerceAtLeast(plannedExercises.size)
+        .coerceAtLeast(1)
 
     val workoutProgressFraction = (completedExercisesToday.toFloat() / targetExercisesToday).coerceIn(0f, 1f)
     val workoutProgressPercent = (workoutProgressFraction * 100).toInt()
+
+    val handleRemoveTodayExercise: (String) -> Unit = { exerciseToRemove ->
+        deletedTodayExercises = deletedTodayExercises + exerciseToRemove.trim().lowercase()
+        WorkoutTimerManager.markCustomWorkoutListModifiedToday(
+            context = context,
+            username = user?.username,
+            workoutTitle = todayWorkout.title
+        )
+        fitnessViewModel.removePlannedExerciseFromToday(exerciseToRemove)
+    }
 
     val totalCaloriesConsumedToday = remember(
         user?.meals,
@@ -197,10 +267,7 @@ fun DashboardScreen(
     }
 
     val caloriesFraction = if (calorieTarget > 0) {
-        (
-                totalCaloriesConsumedToday.toFloat() /
-                        calorieTarget
-                ).coerceIn(0f, 1f)
+        (totalCaloriesConsumedToday.toFloat() / calorieTarget).coerceIn(0f, 1f)
     } else {
         0f
     }
@@ -276,7 +343,7 @@ fun DashboardScreen(
                     exercises = plannedExercises,
                     isExpanded = todayWorkoutExpanded,
                     onToggleExpand = { todayWorkoutExpanded = !todayWorkoutExpanded },
-                    onDeleteExercise = { fitnessViewModel.removePlannedExerciseFromToday(it) },
+                    onDeleteExercise = handleRemoveTodayExercise,
                     onStartClick = {
                         val targetRoute = todayWorkout.route ?: Routes.LOG_WORKOUT
                         onNavigate(targetRoute)
@@ -291,13 +358,14 @@ fun DashboardScreen(
                 TodayProgressCard(
                     hazeState = hazeState,
                     completed = completedExercisesToday,
-                    target = targetExercisesToday,
                     fraction = workoutProgressFraction,
                     percent = workoutProgressPercent,
+                    workoutTimeMins = workoutTimeMins,
+                    restTimeMins = restTimeMins,
                     remainingExercises = remainingExercises,
                     isExpanded = completedWorkoutExpanded,
                     onToggleExpand = { completedWorkoutExpanded = !completedWorkoutExpanded },
-                    onDeleteRemainingExercise = { fitnessViewModel.removePlannedExerciseFromToday(it) }
+                    onDeleteRemainingExercise = handleRemoveTodayExercise
                 )
 
                 CaloriesCard(
@@ -622,26 +690,34 @@ private fun WorkoutCardTop(
                         .padding(top = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    exercises.forEachIndexed { index, ex ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "${index + 1}. $ex",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color(0xFFFF5252),
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable { onDeleteExercise(ex) }
-                            )
+                    if (exercises.isEmpty()) {
+                        Text(
+                            text = "No exercises scheduled for today.",
+                            color = TextMuted,
+                            fontSize = 13.sp
+                        )
+                    } else {
+                        exercises.forEachIndexed { index, ex ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${index + 1}. $ex",
+                                    color = TextWhite,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color(0xFFFF5252),
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clickable { onDeleteExercise(ex) }
+                                )
+                            }
                         }
                     }
                 }
@@ -656,9 +732,10 @@ private fun WorkoutCardTop(
 private fun TodayProgressCard(
     hazeState: HazeState,
     completed: Int,
-    target: Int,
     fraction: Float,
     percent: Int,
+    workoutTimeMins: Int,
+    restTimeMins: Int,
     remainingExercises: List<String>,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
@@ -681,9 +758,9 @@ private fun TodayProgressCard(
             ) {
                 Text(
                     text = "Workouts Completed",
-                    color = TextWhite,
+                    color = TextWhite.copy(alpha = 0.78f),
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 ProgressPill(percent)
@@ -700,8 +777,8 @@ private fun TodayProgressCard(
                     Text(
                         text = completed.toString(),
                         color = TextWhite,
-                        fontSize = 36.sp,
-                        lineHeight = 40.sp,
+                        fontSize = 40.sp,
+                        lineHeight = 44.sp,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -710,9 +787,10 @@ private fun TodayProgressCard(
                         modifier = Modifier.clickable(onClick = onToggleExpand)
                     ) {
                         Text(
-                            text = "${(target - completed).coerceAtLeast(0)} remaining",
+                            text = "${remainingExercises.size} remaining",
                             color = TextMuted,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
                         )
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -723,12 +801,24 @@ private fun TodayProgressCard(
                     }
                 }
 
-                Image(
-                    painter = painterResource(R.drawable.ic_barbell),
-                    contentDescription = null,
-                    modifier = Modifier.size(44.dp),
-                    contentScale = ContentScale.Fit
-                )
+                // Total Workout Time & Rest Time Summary
+                Column(
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Time : $workoutTimeMins mins",
+                        color = TextWhite,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Rest : $restTimeMins mins",
+                        color = TextWhite,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             AnimatedVisibility(visible = isExpanded) {
@@ -738,26 +828,35 @@ private fun TodayProgressCard(
                         .padding(top = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    remainingExercises.forEachIndexed { index, rem ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "${index + 1}. $rem",
-                                color = TextWhite,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color(0xFFFF5252),
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable { onDeleteRemainingExercise(rem) }
-                            )
+                    if (remainingExercises.isEmpty()) {
+                        Text(
+                            text = "All exercises completed for today!",
+                            color = PrimaryGreen,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    } else {
+                        remainingExercises.forEachIndexed { index, rem ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${index + 1}. $rem",
+                                    color = TextWhite,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color(0xFFFF5252),
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clickable { onDeleteRemainingExercise(rem) }
+                                )
+                            }
                         }
                     }
                 }
@@ -986,7 +1085,7 @@ private fun ArrowBadge() {
     }
 }
 
-// ---------- Dialogs with Matching Glass/Border Modifiers ----------
+// ---------- Dialogs ----------
 
 @Composable
 private fun WaterLogDialog(
@@ -1003,8 +1102,6 @@ private fun WaterLogDialog(
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF000000))
                 .border(1.dp, Color(0xFF3DDC84).copy(0.18f), RoundedCornerShape(14.dp))
-//                .glassEffect(hazeState = hazeState, blurRadius = 24.dp, shadowEnabled = true)
-//                .borderGradient()
                 .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -1125,8 +1222,6 @@ private fun WeightLogDialog(
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF000000))
                 .border(1.dp, Color(0xFF3DDC84).copy(0.18f), RoundedCornerShape(14.dp))
-//                .glassEffect(hazeState = hazeState, blurRadius = 24.dp, shadowEnabled = true)
-//                .borderGradient()
                 .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

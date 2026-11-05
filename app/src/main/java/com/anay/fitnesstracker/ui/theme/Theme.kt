@@ -192,7 +192,8 @@ fun Modifier.figmaDropShadow(
 
 // ---------- Reusable glass surface modifier ----------
 
-private val DarkGlassBase = Color(0xFF223229)
+private val DarkGlassBase = Color(0xFF24362C)
+//private val DarkGlassBase = Color(0xFF223229)
 private val NaturalDropShadow = Color.Black.copy(alpha = 0.45f)
 
 fun Modifier.glassEffect(
