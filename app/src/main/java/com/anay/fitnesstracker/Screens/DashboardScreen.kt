@@ -758,9 +758,9 @@ private fun TodayProgressCard(
             ) {
                 Text(
                     text = "Workouts Completed",
-                    color = TextWhite.copy(alpha = 0.78f),
+                    color = TextWhite,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Medium
                 )
 
                 ProgressPill(percent)

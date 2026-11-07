@@ -126,6 +126,7 @@ fun CustomReminderScreen(
         }
     }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -144,7 +145,7 @@ fun CustomReminderScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // Background Optimization Prompt Pill
         if (!isIgnoringBattery && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -164,13 +165,13 @@ fun CustomReminderScreen(
                     .padding(14.dp)
             ) {
                 Text(
-                    text = "⚡ Allow app to run in background for reliable alarm delivery (Tap to enable)",
+                    text = "Allow app to run in background for reliable alarm delivery (Tap to enable)",
                     color = PrimaryGreen,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
 
         // 1. Water Intake Reminder Card
@@ -313,16 +314,16 @@ fun CustomReminderScreen(
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .border(1.dp, CardBorderColor, RoundedCornerShape(16.dp))
+                        .background(Color(0x80ffffff))
+                        .border(1.dp, Color(0xffffffff).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = if (waterReminderEnabled) "🕒  $nextReminderDisplay - Drink Water" else "Reminders paused",
-                        color = if (waterReminderEnabled) TextWhite else TextMuted,
+                        text = if (waterReminderEnabled) "$nextReminderDisplay - Drink Water" else "Reminders paused",
+                        color = if (waterReminderEnabled) Color.Black else Color.White,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -430,8 +431,8 @@ fun TimeSelectorPill(
             .fillMaxWidth()
             .height(50.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(InnerPillBg)
-            .border(1.dp, CardBorderColor, RoundedCornerShape(16.dp))
+            .background(Color(0x80ffffff))
+            .border(1.dp, Color(0xffffffff).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterStart
@@ -441,8 +442,8 @@ fun TimeSelectorPill(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("$icon  $time", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Pick time", tint = PrimaryGreen)
+            Text("$time", color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Pick time", tint = Color.Black)
         }
     }
 }
