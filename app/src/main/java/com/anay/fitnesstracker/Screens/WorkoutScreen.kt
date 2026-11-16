@@ -30,6 +30,7 @@ import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.GlassCard
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.google.firebase.firestore.FirebaseFirestore
 import dev.chrisbanes.haze.HazeState
@@ -37,7 +38,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import java.time.LocalDate
 
-private val PrimaryGreen = Color(0xFF3DDC84)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF9E9E9E)
 
@@ -382,6 +383,7 @@ fun WorkoutScreen(
                 text = "Workouts",
                 color = TextWhite,
                 fontSize = 24.sp,
+                fontFamily = OneplusSlate,
                 fontWeight = FontWeight.Bold
             )
 
@@ -410,6 +412,7 @@ fun WorkoutScreen(
                 modifier = Modifier.fillMaxWidth(),
                 color = PrimaryGreen,
                 fontSize = 19.sp,
+                fontFamily = OneplusSlate,
                 fontWeight = FontWeight.Bold
             )
 
@@ -434,6 +437,7 @@ fun WorkoutScreen(
                     modifier = Modifier.fillMaxWidth(),
                     color = PrimaryGreen,
                     fontSize = 19.sp,
+                    fontFamily = OneplusSlate,
                     fontWeight = FontWeight.Bold
                 )
 

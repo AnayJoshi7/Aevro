@@ -39,16 +39,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.data.*
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.util.BarcodeAnalyzer
 
 
-private val CardDarkBg = Color(0x1A3DDC84)
-private val CardBorderColor = Color(0xFF3DDC84).copy(alpha = 0.18f)
+private val CardDarkBg = Color(0x1AFFFFFF)
+private val CardBorderColor = Color(0xFFFFFFFF).copy(alpha = 0.18f)
 private val DropdownCardBg = Color(0xFF161719)
 private val PillBackground = Color(0x80FFFFFF)
 private val PillBorderColor = Color(0xFFFFFFFF).copy(alpha = 0.5f)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF9E9E9E)
 
@@ -220,6 +221,7 @@ fun AddMealScreen(
                 text = "Add Meals",
                 color = PrimaryGreen,
                 fontSize = 32.sp,
+                fontFamily = OneplusSlate,
                 fontWeight = FontWeight.Bold
             )
 
@@ -275,7 +277,7 @@ fun AddMealScreen(
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(Color(0xFF162E21))
+                                .background(Color(0xFF000000))
                                 .border(1.dp, PrimaryGreen.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
                                 .clickable { onNavigateScan() }
                                 .padding(horizontal = 10.dp, vertical = 5.dp),
@@ -338,7 +340,7 @@ fun AddMealScreen(
                                                 foodDropdownOpen = query.isNotBlank()
                                             },
                                             singleLine = true,
-                                            textStyle = TextStyle(
+                                            textStyle = MaterialTheme.typography.bodyLarge.copy(
                                                 color = Color.Black,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.SemiBold
@@ -399,7 +401,7 @@ fun AddMealScreen(
                                     onValueChange = { qtyText = it },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     singleLine = true,
-                                    textStyle = TextStyle(
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                                         color = Color.Black,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
@@ -691,7 +693,7 @@ fun AddMealScreen(
                                 .weight(1f)
                                 .height(46.dp)
                                 .clip(RoundedCornerShape(23.dp))
-                                .background(Color(0xFF0F1E16))
+                                .background(Color(0x1A0673cb))
                                 .border(1.dp, CardBorderColor, RoundedCornerShape(23.dp))
                                 .clickable {
                                     val itemName = selectedFood?.name ?: foodSearchQuery
@@ -843,7 +845,7 @@ fun AddMealScreen(
                         .height(54.dp)
                         .clip(RoundedCornerShape(27.dp))
                         .border(1.dp, CardBorderColor, RoundedCornerShape(27.dp))
-                        .background(Color(0xFF14241C))
+                        .background(Color(0x1A0673cb))
                         .clickable { onNavigateBack() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -904,7 +906,7 @@ private fun MacroEditRow(
                         enabled = isManual,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = TextStyle(
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = Color.Black,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
@@ -973,7 +975,7 @@ private fun PillInputField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = TextStyle(
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
                 color = Color.Black,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium

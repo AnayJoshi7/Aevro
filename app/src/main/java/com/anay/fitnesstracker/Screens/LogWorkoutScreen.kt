@@ -51,6 +51,7 @@ import androidx.compose.ui.window.Dialog
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.*
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,11 +64,11 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.round
 
-private val CardDarkBg = Color(0x1A3DDC84)
-private val CardBorderColor = Color(0xFF3DDC84).copy(alpha = 0.20f)
+private val CardDarkBg = Color(0x1AFFFFFF)
+private val CardBorderColor = Color(0xFFFFFFFF).copy(alpha = 0.18f)
 private val DropdownCardBg = Color(0xFF161719)
 private val PillGrayBg = Color(0xFFAEB2B0)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 
 enum class WorkoutLogMode {
@@ -356,6 +357,7 @@ fun LogWorkoutScreen(
             text = "Log Your Workout",
             color = PrimaryGreen,
             fontSize = 28.sp,
+            fontFamily = OneplusSlate,
             fontWeight = FontWeight.Bold
         )
 
@@ -611,7 +613,7 @@ fun LogWorkoutScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xFF0F1E16))
+
                                 .border(1.dp, CardBorderColor, RoundedCornerShape(18.dp))
                                 .padding(horizontal = 12.dp, vertical = 14.dp)
                         ) {
@@ -661,7 +663,7 @@ fun LogWorkoutScreen(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(12.dp))
-                                            .background(Color(0xFF1E382B))
+                                            .background(Color(0xFF0673cb).copy(alpha=0.075f))
                                             .border(1.dp, CardBorderColor, RoundedCornerShape(12.dp))
                                             .padding(2.dp)
                                     ) {
@@ -739,7 +741,7 @@ fun LogWorkoutScreen(
                                             },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             singleLine = true,
-                                            textStyle = TextStyle(
+                                            textStyle = MaterialTheme.typography.bodyLarge.copy(
                                                 color = Color.Black,
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -769,7 +771,7 @@ fun LogWorkoutScreen(
                                             },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             singleLine = true,
-                                            textStyle = TextStyle(
+                                            textStyle = MaterialTheme.typography.bodyLarge.copy(
                                                 color = Color.Black,
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -901,7 +903,7 @@ fun LogWorkoutScreen(
                                 onValueChange = { cardioDurationMins = it },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
-                                textStyle = TextStyle(
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
                                     color = Color.Black,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold
@@ -982,6 +984,7 @@ fun LogWorkoutScreen(
             text = "Logged Exercises",
             color = TextWhite,
             fontSize = 20.sp,
+            fontFamily = OneplusSlate,
             fontWeight = FontWeight.Bold
         )
 
@@ -1134,7 +1137,7 @@ fun LogWorkoutScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(Color(0xFF0A150F))
+
                                     .border(1.dp, CardBorderColor.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
                                     .padding(14.dp)
                             ) {
@@ -1236,7 +1239,6 @@ private fun WorkoutTimerCard(
                 modifier = Modifier
                     .height(44.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF0F1E16))
                     .border(1.dp, CardBorderColor, RoundedCornerShape(14.dp))
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1400,7 +1402,7 @@ private fun EditExerciseDialog(
                     value = editName,
                     onValueChange = { editName = it },
                     singleLine = true,
-                    textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -1424,7 +1426,7 @@ private fun EditExerciseDialog(
                         onValueChange = { editDuration = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1475,7 +1477,7 @@ private fun EditExerciseDialog(
                                     },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     singleLine = true,
-                                    textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -1499,7 +1501,7 @@ private fun EditExerciseDialog(
                                     },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     singleLine = true,
-                                    textStyle = TextStyle(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }

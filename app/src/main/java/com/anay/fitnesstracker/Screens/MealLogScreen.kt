@@ -29,13 +29,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import java.time.LocalDate
 import java.time.ZoneId
 
-private val CardDarkBg = Color(0x1A3DDC84)
-private val CardBorderColor = Color(0xFF3DDC84).copy(alpha = 0.20f)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val CardDarkBg = Color(0x1AFFFFFF)
+private val CardBorderColor = Color(0xFFFFFFFF).copy(alpha = 0.20f)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF9E9E9E)
 
@@ -166,6 +167,7 @@ fun MealLogScreen(
                 text = "Track Your Food",
                 color = PrimaryGreen,
                 fontSize = 32.sp,
+                fontFamily = OneplusSlate,
                 fontWeight = FontWeight.Bold
             )
 
@@ -303,6 +305,7 @@ fun MealLogScreen(
                     text = "Today’s Meals",
                     color = PrimaryGreen,
                     fontSize = 20.sp,
+                    fontFamily = OneplusSlate,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -419,7 +422,7 @@ fun MealLogScreen(
                     .height(56.dp)
                     .clip(RoundedCornerShape(28.dp))
                     .border(1.dp, CardBorderColor, RoundedCornerShape(28.dp))
-                    .background(Color(0xFF14241C))
+                    .background(Color(0x1A0673cb))
                     .clickable { onNavigateAddMeal() },
                 contentAlignment = Alignment.Center
             ) {

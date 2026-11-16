@@ -47,7 +47,9 @@ import com.anay.fitnesstracker.data.StepSensorManager
 import com.anay.fitnesstracker.data.WorkoutScheduleHelper
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.GlassCard
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.PrimaryGreen
+import com.anay.fitnesstracker.ui.theme.SfProRounded
 import com.anay.fitnesstracker.ui.theme.TextMuted
 import com.anay.fitnesstracker.ui.theme.TextWhite
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
@@ -327,7 +329,8 @@ fun DashboardScreen(
                     text = "Greetings, ${
                         user?.name?.ifBlank { "Anay" } ?: "Anay"
                     } 👋",
-                    color = PrimaryGreen,
+                    color = Color(0XFFFFFFFF),
+                    fontFamily = OneplusSlate,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -457,6 +460,7 @@ private fun SectionTitle(
         text = title,
         color = TextWhite,
         fontSize = 21.sp,
+        fontFamily = OneplusSlate,
         fontWeight = FontWeight.Bold
     )
 }
@@ -501,13 +505,13 @@ private fun ProgressPill(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(PrimaryGreen.copy(alpha = 0.12f))
+            .background(Color.Black)
             .padding(horizontal = 10.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "${percent.coerceIn(0, 100)}%",
-            color = PrimaryGreen,
+            color = Color(0xFF0673cb),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -524,14 +528,14 @@ private fun ActionPill(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(PrimaryGreen.copy(alpha = 0.20f))
+            .background(Color.Black)
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            color = PrimaryGreen,
+            color = Color(0xFF0673cb),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
@@ -555,7 +559,7 @@ private fun DashboardMetricCard(
     GlassCard(
         modifier = modifier.fillMaxWidth(),
         hazeState = hazeState,
-        blurRadius = 16.dp,
+        blurRadius = 40.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Column(
@@ -572,7 +576,7 @@ private fun DashboardMetricCard(
                     text = title,
                     color = TextWhite,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 ProgressPill(percent)
@@ -637,7 +641,7 @@ private fun WorkoutCardTop(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         hazeState = hazeState,
-        blurRadius = 16.dp,
+        blurRadius = 40.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Column(
@@ -707,7 +711,7 @@ private fun WorkoutCardTop(
                                     text = "${index + 1}. $ex",
                                     color = TextWhite,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.SemiBold
                                 )
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -744,7 +748,7 @@ private fun TodayProgressCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         hazeState = hazeState,
-        blurRadius = 16.dp,
+        blurRadius = 40.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Column(
@@ -759,8 +763,9 @@ private fun TodayProgressCard(
                 Text(
                     text = "Workouts Completed",
                     color = TextWhite,
+                    fontFamily = SfProRounded,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 ProgressPill(percent)
@@ -947,7 +952,7 @@ private fun WaterIntakeCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         hazeState = hazeState,
-        blurRadius = 16.dp,
+        blurRadius = 40.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Column(
@@ -963,7 +968,7 @@ private fun WaterIntakeCard(
                     text = "Water Intake",
                     color = TextWhite,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 ProgressPill(percent)
@@ -1019,7 +1024,7 @@ private fun WeightMetricCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         hazeState = hazeState,
-        blurRadius = 16.dp,
+        blurRadius = 40.dp,
         contentPadding = PaddingValues(20.dp)
     ) {
         Column(
@@ -1030,7 +1035,7 @@ private fun WeightMetricCard(
                 text = "Weight",
                 color = TextWhite,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
 
             Row(
@@ -1101,7 +1106,7 @@ private fun WaterLogDialog(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF000000))
-                .border(1.dp, Color(0xFF3DDC84).copy(0.18f), RoundedCornerShape(14.dp))
+                .border(1.dp, Color(0xFFFFFFFF).copy(0.18f), RoundedCornerShape(14.dp))
                 .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -1164,7 +1169,7 @@ private fun WaterLogDialog(
                     textStyle = TextStyle(
                         color = TextWhite,
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1221,7 +1226,7 @@ private fun WeightLogDialog(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF000000))
-                .border(1.dp, Color(0xFF3DDC84).copy(0.18f), RoundedCornerShape(14.dp))
+                .border(1.dp, Color(0xFFFFFFFF).copy(0.18f), RoundedCornerShape(14.dp))
                 .padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -1287,7 +1292,7 @@ private fun WeightLogDialog(
                     textStyle = TextStyle(
                         color = TextWhite,
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )

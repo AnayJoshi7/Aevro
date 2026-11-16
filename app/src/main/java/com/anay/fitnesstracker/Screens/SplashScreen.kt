@@ -27,13 +27,13 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.components.DashboardSkeletonScreen
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.ui.theme.glassEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
-private val CardBackground = Color(0x1A3ddc84)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF8E8E93)
 
@@ -88,7 +88,7 @@ fun SplashScreen(
 
                 // App Logo
                 Image(
-                    painter = painterResource(id = R.drawable.ic_logo),
+                    painter = painterResource(id = R.drawable.ic_newlogo),
                     contentDescription = "Aevro Logo",
                     modifier = Modifier
                         .size(110.dp)
@@ -104,6 +104,8 @@ fun SplashScreen(
                         text = "Train",
                         color = TextWhite,
                         fontSize = 38.sp,
+                        fontFamily = OneplusSlate,
+
                         fontWeight = FontWeight.Bold,
                         lineHeight = 44.sp,
                         textAlign = TextAlign.Center
@@ -111,6 +113,8 @@ fun SplashScreen(
                     Text(
                         text = "Fuel",
                         color = PrimaryGreen,
+                        fontFamily = OneplusSlate,
+
                         fontSize = 38.sp,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 44.sp,
@@ -118,6 +122,8 @@ fun SplashScreen(
                     )
                     Text(
                         text = "Progress",
+                        fontFamily = OneplusSlate,
+
                         color = TextWhite,
                         fontSize = 38.sp,
                         fontWeight = FontWeight.Bold,
@@ -133,6 +139,8 @@ fun SplashScreen(
                     text = "Your journey to peak performance starts here.",
                     color = TextMuted,
                     fontSize = 14.sp,
+                    fontFamily = OneplusSlate,
+
                     fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center
                 )
@@ -228,13 +236,13 @@ fun SplashScreen(
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x803ddc84)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x800673cb)),
                         shape = RoundedCornerShape(20.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
                                 1.dp,
-                                Color(0xFF3ddc84).copy(alpha = 0.5f),
+                                Color(0xFF0673cb).copy(alpha = 0.5f),
                                 RoundedCornerShape(20.dp)
                             )
                             .height(50.dp),
@@ -264,6 +272,8 @@ fun SplashScreen(
                     text = "NEW?",
                     color = PrimaryGreen,
                     fontSize = 20.sp,
+                    fontFamily = OneplusSlate,
+
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .align(Alignment.Start)

@@ -35,12 +35,13 @@ import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.components.DeleteAccountDialog
 import com.anay.fitnesstracker.components.EditUsernameDialog
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.util.ImageUtils
 import java.time.LocalDate
 
-private val CardBackground = Color(0x1A3ddc84)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val CardBackground = Color(0x1AFFFFFF)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF9E9E9E)
 private val AvatarColor = Color(0xFFD4D4D6)
@@ -111,6 +112,7 @@ fun PersonalInfoScreen(
             text = "Personal\nInformation",
             color = PrimaryGreen,
             fontSize = 28.sp,
+            fontFamily = OneplusSlate,
             fontWeight = FontWeight.Bold,
             lineHeight = 34.sp,
             textAlign = androidx.compose.ui.text.style.TextAlign.Start,
@@ -125,7 +127,7 @@ fun PersonalInfoScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
                 .padding(24.dp),
             horizontalAlignment = Alignment.Start
         ) {
@@ -135,7 +137,7 @@ fun PersonalInfoScreen(
                     .size(105.dp)
                     .clip(CircleShape)
                     .background(AvatarColor)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), CircleShape)
+                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), CircleShape)
                     .clickable(enabled = isEditing) { photoPickerLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {

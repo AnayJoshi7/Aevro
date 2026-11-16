@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.UserProfile
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.ui.theme.glassEffect
 import com.anay.fitnesstracker.util.ImageUtils
@@ -54,7 +56,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private val PrimaryGreen = Color(0xFF27D07F)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val AvatarColor = Color(0xFFD4D4D6)
 private val UpdatePillBg = Color(0xFFB5B9B7)
@@ -110,6 +112,7 @@ fun ProfileScreen(
                     text = "Profile",
                     color = TextWhite,
                     fontSize = 24.sp,
+                    fontFamily = OneplusSlate,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.CenterStart)
                 )
@@ -166,6 +169,7 @@ fun ProfileScreen(
                 color = TextWhite,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = OneplusSlate,
                 modifier = Modifier.align(Alignment.Start)
             )
 
@@ -627,7 +631,7 @@ private fun FitnessMetricEditRow(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 cursorBrush = SolidColor(PrimaryGreen),
-                textStyle = TextStyle(
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = Color.Black,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold

@@ -31,17 +31,11 @@ import com.anay.fitnesstracker.Routes
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import androidx.compose.material3.MaterialTheme
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 
-private val BgGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF1B1C1E),
-        Color(0xFF131416),
-        Color(0xFF2C2E31),
-        Color(0xFF111214)
-    )
-)
-private val CardBackground = Color(0x1A3ddc84)
-private val PrimaryGreen = Color(0xFF27D07F)
+
+private val CardBackground = Color(0x1Affffff)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 
 @Composable
@@ -89,6 +83,7 @@ fun CustomScheduleScreen(
             color = PrimaryGreen,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
+            fontFamily = OneplusSlate,
             lineHeight = 34.sp,
             textAlign = androidx.compose.ui.text.style.TextAlign.Start
         )
@@ -106,7 +101,7 @@ fun CustomScheduleScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardBackground)
-                    .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0xFF0673cb).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                     .padding(20.dp)
             ) {
@@ -158,8 +153,8 @@ fun CustomScheduleScreen(
                         modifier = Modifier
                             .height(44.dp)
                             .clip(RoundedCornerShape(22.dp))
-                            .background(Color(0x803ddc84))
-                            .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.5f), RoundedCornerShape(22.dp))
+                            .background(Color(0x800673cb))
+                            .border(1.dp, Color(0xFF0673cb).copy(alpha = 0.5f), RoundedCornerShape(22.dp))
 
                             .clickable { onNavigateAddExercises(dayName) }
                             .padding(horizontal = 14.dp),

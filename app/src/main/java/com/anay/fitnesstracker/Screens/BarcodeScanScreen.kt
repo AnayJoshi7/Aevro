@@ -37,7 +37,7 @@ import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
 import com.anay.fitnesstracker.util.BarcodeAnalyzer
 import java.util.concurrent.Executors
 
-private val PrimaryGreen = Color(0xFF27D07F)
+private val PrimaryGreen = Color(0xFF0673cb)
 
 @Composable
 fun BarcodeScanScreen(

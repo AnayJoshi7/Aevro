@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val PillBackground = Color(0xFF000000)
-private val GreenText = Color(0xFF3DDC84)
+private val GreenText = Color(0xFF0673cb)
 
 @Composable
 fun NextPillButton(

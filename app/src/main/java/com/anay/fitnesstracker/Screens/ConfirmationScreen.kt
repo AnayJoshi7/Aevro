@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import com.anay.fitnesstracker.components.NextPillButton
 import com.anay.fitnesstracker.data.SessionManager
 import com.anay.fitnesstracker.data.UserProfile
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
@@ -46,9 +48,9 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private val CardDarkBg = Color(0xFF0F1E16)
-private val CardBorderColor = Color(0xFF27D07F).copy(alpha = 0.22f)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val CardDarkBg = Color(0x1Affffff)
+private val CardBorderColor = Color(0xFFffffff).copy(alpha = 0.18f)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF8E9094)
 private val InputBg = Color(0xFF162B20)
@@ -249,6 +251,7 @@ fun ConfirmationScreen(
                 text = "Confirm Your\nPreferences",
                 color = PrimaryGreen,
                 fontSize = 34.sp,
+                fontFamily = OneplusSlate,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 40.sp
             )
@@ -338,10 +341,10 @@ fun ConfirmationScreen(
                                     .fillMaxWidth()
                                     .height(46.dp)
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(InputBg)
+                                    .background(Color(0x80FFFFFF))
                                     .border(
                                         1.dp,
-                                        if (usernameError != null) ErrorRed else InputBorder,
+                                        if (usernameError != null) ErrorRed else Color(0xFFFFFFFF).copy(alpha = 0.18f),
                                         RoundedCornerShape(14.dp)
                                     )
                                     .padding(horizontal = 14.dp),
@@ -360,7 +363,7 @@ fun ConfirmationScreen(
                                         keyboardType = KeyboardType.Ascii
                                     ),
                                     cursorBrush = SolidColor(PrimaryGreen),
-                                    textStyle = TextStyle(
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                                         color = TextWhite,
                                         fontSize = 20.sp,
                                         fontWeight = FontWeight.Medium
@@ -385,10 +388,11 @@ fun ConfirmationScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Save this username. You'll use it to log in.",
+                    text = "Save this username. You'll use it to log in.\n You can change it later.",
                     color = TextMuted,
                     fontSize = 14.sp
                 )
+
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -568,8 +572,8 @@ fun ConfirmationScreen(
                                     .weight(1.4f)
                                     .height(42.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(InputBg)
-                                    .border(1.dp, InputBorder, RoundedCornerShape(12.dp))
+                                    .background(Color(0x80ffffff))
+                                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                                     .padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
@@ -578,7 +582,7 @@ fun ConfirmationScreen(
                                     onValueChange = { workoutSplitInput = it },
                                     singleLine = true,
                                     cursorBrush = SolidColor(PrimaryGreen),
-                                    textStyle = TextStyle(
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                                         color = TextWhite,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Normal
@@ -592,8 +596,8 @@ fun ConfirmationScreen(
                                     .weight(0.8f)
                                     .height(42.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(InputBg)
-                                    .border(1.dp, InputBorder, RoundedCornerShape(12.dp))
+                                    .background(Color(0x80ffffff))
+                                    .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                                     .padding(horizontal = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -603,7 +607,7 @@ fun ConfirmationScreen(
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     cursorBrush = SolidColor(PrimaryGreen),
-                                    textStyle = TextStyle(
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                                         color = TextWhite,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Normal
@@ -697,8 +701,8 @@ private fun EditableLargeGoalItem(
                 .fillMaxWidth()
                 .height(42.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(InputBg)
-                .border(1.dp, InputBorder, RoundedCornerShape(12.dp))
+                .background(Color(0x80ffffff))
+                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -708,7 +712,7 @@ private fun EditableLargeGoalItem(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                 cursorBrush = SolidColor(PrimaryGreen),
-                textStyle = TextStyle(
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = TextWhite,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Normal
@@ -736,8 +740,8 @@ private fun EditIconPill(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(PrimaryGreen.copy(alpha = 0.14f))
-            .border(1.dp, PrimaryGreen.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .background(Color(0x80ffffff))
+            .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -745,13 +749,13 @@ private fun EditIconPill(
         Icon(
             imageVector = Icons.Default.Edit,
             contentDescription = label,
-            tint = PrimaryGreen,
+            tint = Color.Black,
             modifier = Modifier.size(14.dp)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = label,
-            color = PrimaryGreen,
+            color = Color.Black,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )

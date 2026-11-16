@@ -41,16 +41,17 @@ import androidx.core.content.ContextCompat
 import com.anay.fitnesstracker.data.ReminderSettings
 import com.anay.fitnesstracker.data.reminder.ReminderScheduler
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import java.time.LocalTime
 import java.util.Locale
 
-private val CardDarkBg = Color(0xFF0F1E16)
-private val CardBorderColor = Color(0xFF27D07F).copy(alpha = 0.22f)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val CardDarkBg = Color(0x1Affffff)
+private val CardBorderColor = Color(0xFFffffff).copy(alpha = 0.18f)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 private val TextMuted = Color(0xFF8E9094)
-private val InnerPillBg = Color(0xFF16251E)
+private val InnerPillBg = Color(0xFF0673cb).copy(alpha = 0.075f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,6 +142,7 @@ fun CustomReminderScreen(
         Text(
             text = "Create Reminders",
             color = PrimaryGreen,
+            fontFamily = OneplusSlate,
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold
         )
@@ -465,7 +467,7 @@ fun ClockTimePickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color(0xFF161719),
+            color = Color.Black,
             border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor),
             modifier = Modifier
                 .width(IntrinsicSize.Min)
@@ -491,11 +493,11 @@ fun ClockTimePickerDialog(
                 TimePicker(
                     state = timePickerState,
                     colors = TimePickerDefaults.colors(
-                        clockDialColor = Color(0xFF0F1E16),
+                        clockDialColor = Color(0xFF0673cb).copy(alpha = 0.075f),
                         clockDialSelectedContentColor = Color.Black,
                         clockDialUnselectedContentColor = TextWhite,
                         selectorColor = PrimaryGreen,
-                        containerColor = Color(0xFF161719),
+                        containerColor = Color(0x1A0673cb),
                         periodSelectorBorderColor = CardBorderColor,
                         periodSelectorSelectedContainerColor = PrimaryGreen,
                         periodSelectorUnselectedContainerColor = InnerPillBg,

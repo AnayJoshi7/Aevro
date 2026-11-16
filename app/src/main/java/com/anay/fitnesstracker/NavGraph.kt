@@ -136,24 +136,24 @@ fun FitnessAppNavHost(
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(
                     viewModel = fitnessViewModel,
-                    onNext = { navController.navigate(Routes.ONBOARDING_CONTINUED) }
-                )
-            }
-
-            composable(Routes.ONBOARDING_CONTINUED) {
-                OnboardingContinuedScreen(
-                    viewModel = fitnessViewModel,
-                    onNext = { navController.navigate(Routes.PREFERENCES) }
-                )
-            }
-
-            composable(Routes.PREFERENCES) {
-                PreferencesScreen(
-                    viewModel = fitnessViewModel,
-                    onNavigateWorkoutSplit = { navController.navigate(Routes.WORKOUT_SPLIT) },
                     onNext = { navController.navigate(Routes.CONFIRMATION) }
                 )
             }
+
+//            composable(Routes.ONBOARDING_CONTINUED) {
+//                OnboardingContinuedScreen(
+//                    viewModel = fitnessViewModel,
+//                    onNext = { navController.navigate(Routes.PREFERENCES) }
+//                )
+//            }
+//
+//            composable(Routes.PREFERENCES) {
+//                PreferencesScreen(
+//                    viewModel = fitnessViewModel,
+//                    onNavigateWorkoutSplit = { navController.navigate(Routes.WORKOUT_SPLIT) },
+//                    onNext = { navController.navigate(Routes.CONFIRMATION) }
+//                )
+//            }
 
             composable(Routes.WORKOUT_SPLIT) {
                 WorkoutSplitScreen(

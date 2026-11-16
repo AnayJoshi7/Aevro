@@ -25,10 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
-private val CardBackground = Color(0x1A3ddc84)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val CardBackground = Color(0x1AFFFFFF)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 
 @Composable
@@ -64,7 +65,7 @@ fun AboutScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(text = "About", color = PrimaryGreen, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+        Text(text = "About", color = PrimaryGreen, fontFamily = OneplusSlate, fontSize = 28.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -77,7 +78,7 @@ fun AboutScreen(
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_logo),
+                painter = painterResource(id = R.drawable.ic_newlogo),
                 contentDescription = null,
                 modifier = Modifier.size(45.dp)
             )
@@ -94,7 +95,7 @@ fun AboutScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFFFFFFFF).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                 .background(CardBackground)
                 .padding(22.dp)

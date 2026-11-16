@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 import com.anay.fitnesstracker.ui.theme.glassEffect
 import dev.chrisbanes.haze.HazeState
@@ -40,7 +41,7 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private val PrimaryGreen = Color(0xFF3DDC84)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color.White
 private val TextMuted = Color(0xFF8E9094)
 private val GraphRed = Color(0xFFFF3B30)
@@ -225,6 +226,7 @@ fun ProgressScreen(
                     text = "Progress",
                     color = PrimaryGreen,
                     fontSize = 24.sp,
+                    fontFamily = OneplusSlate,
                     fontWeight = FontWeight.Bold
                 )
 

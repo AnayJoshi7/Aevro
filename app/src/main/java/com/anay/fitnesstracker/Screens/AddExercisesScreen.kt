@@ -37,19 +37,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anay.fitnesstracker.R
 import com.anay.fitnesstracker.data.viewmodel.FitnessViewModel
+import com.anay.fitnesstracker.ui.theme.OneplusSlate
 import com.anay.fitnesstracker.ui.theme.appBackgroundGradient
 
-private val BgGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF1B1C1E),
-        Color(0xFF131416),
-        Color(0xFF2C2E31),
-        Color(0xFF111214)
-    )
-)
-private val CardBackground = Color(0x1A388c84)
+
+private val CardBackground = Color(0x1AFFFFFF)
 private val DropdownCardBg = Color(0xFF161719)
-private val PrimaryGreen = Color(0xFF27D07F)
+private val PrimaryGreen = Color(0xFF0673cb)
 private val TextWhite = Color(0xFFFFFFFF)
 
 @Composable
@@ -100,6 +94,7 @@ fun AddExercisesScreen(
         Text(
             text = "Add Exercises",
             color = PrimaryGreen,
+            fontFamily = OneplusSlate,
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
         )
@@ -112,7 +107,7 @@ fun AddExercisesScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardBackground)
-                .border(1.dp, Color(0xFF3ddc84).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0xFF0673cb).copy(alpha = 0.18f), RoundedCornerShape(24.dp))
 
                 .padding(22.dp)
         ) {
